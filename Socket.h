@@ -1,3 +1,12 @@
+#ifndef SOCKET_H
+#define SOCKET_H
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#include "Protocol.h"
+
 int RawSocketConnection(char *device)
 {
 	int raw_socket;
@@ -39,3 +48,5 @@ int RawSocketConnection(char *device)
 
 	return raw_socket;
 }
+
+#endif // SOCKET_H
