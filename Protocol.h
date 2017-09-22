@@ -9,13 +9,16 @@
 #include <linux/if.h>
 
 #define buf_max 65536
-#define framing_bits 0b11000011
+#define framing_bits 0b01111110
 #define frame_n 8
 
 typedef struct {
-	int size:4;
-	int seq:;
+	//int start:8; //framing_bits?
+	int size:5;
+	int seq:6;
+	int type:5;
 	unsigned char* data;
+	//int parity:8;
 } packet;
 
 #endif // PROTOCOL_H
