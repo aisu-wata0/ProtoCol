@@ -21,7 +21,7 @@ int rec_packet(packet* msg, unsigned char* buffer){
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
 	memset(buffer, 0, buf_max);
-	
+
 	int buf_n = 0;
 	while(buf_n <= 0){
 		// printf(".");
@@ -38,8 +38,14 @@ int rec_packet(packet* msg, unsigned char* buffer){
 	return 0;
 }
 
+void parse(packet msg){
+	
+}
+
+	// sendto(sock, response, sizeof(response), 0, (struct sockaddr *)&sender, sendsize);
+
 int main(){
-	int sock_r = RawSocketConnection(char *device); // TODO: what device?
+	int sock_r = RawSocketConnection("eth0");
 	
 	unsigned char* buffer = (unsigned char *) malloc(buf_max); //to receive data
 	
@@ -47,11 +53,12 @@ int main(){
 	
 	while(true){
 		while(rec_packet(&msg, buffer) == -1);
-		
-		// do something with msg
+		if(error(msg)){
+			send_nack(msg);
+		} else{
+			parse(msg);
+		}
 	}
-	
-	// sendto(sock, response, sizeof(response), 0, (struct sockaddr *)&sender, sendsize);
 	return 0;
 }
 
