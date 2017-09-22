@@ -44,21 +44,21 @@ void parse(packet msg){
 
 	// sendto(sock, response, sizeof(response), 0, (struct sockaddr *)&sender, sendsize);
 
-int main(){
-	int sock_r = RawSocketConnection("eth0");
-	
-	unsigned char* buffer = (unsigned char *) malloc(buf_max); //to receive data
-	
-	packet msg;
-	
-	while(true){
-		while(rec_packet(&msg, buffer) == -1);
-		if(error(msg)){
-			send_nack(msg);
-		} else{
-			parse(msg);
-		}
-	}
-	return 0;
-}
+//int main(){
+//	int sock_r = RawSocketConnection("eth0");
+//	
+//	unsigned char* buffer = (unsigned char *) malloc(buf_max); //to receive data
+//	
+//	packet msg;
+//	
+//	while(true){
+//		while(rec_packet(&msg, buffer) == -1);
+//		if(error(msg)){
+//			send_nack(msg);
+//		} else{
+//			parse(msg);
+//		}
+//	}
+//	return 0;
+//}
 
