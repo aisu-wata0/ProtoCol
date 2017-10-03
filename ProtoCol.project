@@ -8,10 +8,11 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="Socket.h"/>
-    <File Name="master.c"/>
-    <File Name="dorei.c"/>
-    <File Name="Protocol.h"/>
+    <File Name="src/main.c"/>
+    <File Name="src/Protocol.h"/>
+    <File Name="src/Socket.h"/>
+    <File Name="src/master.h"/>
+    <File Name="src/dorei.h"/>
   </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -182,4 +183,8 @@
       </Completion>
     </Configuration>
   </Settings>
+  <VirtualDirectory Name="root">
+    <File Name="Makefile"/>
+    <File Name=".gitignore"/>
+  </VirtualDirectory>
 </CodeLite_Project>
