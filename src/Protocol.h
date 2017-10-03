@@ -14,6 +14,15 @@
 #define framing_bits 0b11000011
 #define frame_n 8
 
+//typedef struct {
+//	uint8_t frame:8;
+//	uint8_t size:5;
+//	uint8_t seq:6;
+//	uint8_t type:5;
+//	uint8_t* data;
+//	uint8_t parity:8;
+//} packet;
+
 typedef struct {
 	uint8_t size:4;
 	uint8_t seq:4;
