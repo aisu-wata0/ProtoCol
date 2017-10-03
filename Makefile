@@ -1,6 +1,6 @@
 
-SRCDIR = src
-BUILDDIR = obj
+SRCDIR = src/
+BUILDDIR = obj/
 
 SRCNAMES := $(shell find $(SOURCEDIR) -name '*.c' -type f -exec basename {} \;)
 
@@ -56,7 +56,7 @@ $(bin): $(OBJECTS)
 	@echo 'Finished building target: $@'
 	@echo
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
 	$(compiler) $(FLAGS) $(LIBS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"

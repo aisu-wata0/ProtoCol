@@ -8,10 +8,23 @@
 #include "Protocol.h"
 #include "Socket.h"
 
+//packet createMessage(){
+//	packet tegami;
+//	
+//	tegami.frame = framing_bits;
+//	tegami.size = 8;
+//	tegami.seq = 0;
+//	tegami.type = 3;
+//	tegami.data = (uint8_t*)malloc(sizeof(uint8_t)*1);
+//	tegami.parity = 0b10101010;	
+//	tegami.data[0] = 0b10101010;
+//	
+//	return tegami;
+//}
 
 int dorei(){
 	int sock = RawSocketConnection("eth0");
-	uint8_t* buf = (uint8_t*)malloc(buf_max); //to send data
+	uint8_t* buf = (uint8_t*)malloc(BUF_MAX); //to send data
 	buf[0] = framing_bits;
 	buf[1] = 0b00110001;
 	
