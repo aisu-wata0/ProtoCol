@@ -1,5 +1,5 @@
-#ifndef MASTER_H
-#define MASTER_H
+#ifndef DOREI_H
+#define DOREI_H
 
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +23,7 @@
 //}
 
 int dorei(){
-	int sock = RawSocketConnection("eth0");
+	int sock = raw_socket_connection("eth0");
 	uint8_t* buf = (uint8_t*)malloc(BUF_MAX); //to send data
 	buf[0] = framing_bits;
 	buf[1] = 0b00110001;

@@ -7,7 +7,7 @@
 
 #include "Protocol.h"
 
-int RawSocketConnection(char *device)
+int raw_socket_connection(char *device)
 {
 	int raw_socket;
 	struct ifreq ir;
