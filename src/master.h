@@ -70,7 +70,7 @@ void parse(packet msg){
 	// sendto(sock, response, sizeof(response), 0, (struct sockaddr *)&sender, sendsize);
 
 int master(){
-	int sock = RawSocketConnection("eth0");
+	int sock = raw_socket_connection("eth0");
 	uint8_t* buf = (uint8_t*)malloc(BUF_MAX); //to receive data
 	
 	packet msg;
