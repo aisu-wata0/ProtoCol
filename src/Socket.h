@@ -7,7 +7,7 @@
 
 #include "Protocol.h"
 
-int raw_socket_connection(char *device)
+int raw_socket_connection(char* device)
 {
 	int raw_socket;
 	struct ifreq ir;
@@ -21,7 +21,7 @@ int raw_socket_connection(char *device)
 	}
 
 	memset(&ir, 0, sizeof(struct ifreq));  	/*dispositivo eth0*/
-	memcpy(ir.ifr_name, device, sizeof(device));
+	memcpy(ir.ifr_name, device, strlen(device));
 	if (ioctl(raw_socket, SIOCGIFINDEX, &ir) == -1) {
 		printf("Erro no ioctl\n");
 		exit(-1);
