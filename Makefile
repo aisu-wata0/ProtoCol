@@ -1,12 +1,12 @@
 
-SRCDIR = src/
-BUILDDIR = obj/
+SRCDIR = src
+BUILDDIR = obj
 
 SRCNAMES := $(shell find $(SOURCEDIR) -name '*.c' -type f -exec basename {} \;)
 
 HNAMES := $(shell find $(SOURCEDIR) -name '*.h' -type f -exec basename {} \;)
 
-OBJECTS := $(addprefix $(BUILDDIR)/, $(SRCNAMES:%.cpp=%.o))
+OBJECTS := $(addprefix $(BUILDDIR)/, $(SRCNAMES:%.c=%.o))
 SRCS := $(addprefix $(SRCDIR)/, $(SRCNAMES))
 
 # libs to include
