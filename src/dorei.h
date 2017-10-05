@@ -14,14 +14,17 @@
  * @return position [i] where the message starts, -1 if no message
  */
 int frame_msg(uint8_t* buf, int buf_n){
-	printf("Received message, searching frame\n");
+	printf("Received message of size = %d, searching frame\n", buf_n);
 	for(int i = 0; i < buf_n; i++){
 		for (int bit = 0; bit <= frame_n-1; bit++){
 			uint8_t pattern = buf[i] << bit;
 			pattern |= buf[i+1] >> (frame_n -bit);
 			if (pattern == framing_bits){
 				shift_left(&buf[i], (buf_n-1) -(i) + 1, bit);
-				printf("found at: %d\n", i);
+				printf("found at: %d, %hhx\n", i, buf[i]);
+				for(int j = i-1; j < i+5; j++){
+					printf("j: %d, %hhx\n", j, buf[j]);
+				}
 				return i;
 			}
 		}
@@ -35,7 +38,11 @@ int frame_msg(uint8_t* buf, int buf_n){
  */
 packet deserialize_msg(uint8_t* buf, int buf_n){
 	packet msg;
-
+	printf("Deserializing\n");
+	for(int j = 0; j < 5; j++){
+		printf("j: %d, %hhx\n", j, buf[j]);
+	}
+	
 	msg.size = buf[0] >> 4;
 	msg.seq = (buf[0] << 4) >> 4;
 	printf("size: %d; seq: %d;\n", msg.size, msg.seq);
@@ -43,15 +50,11 @@ packet deserialize_msg(uint8_t* buf, int buf_n){
 	msg = *(packet*)&buf[0];
 	printf("size: %d; seq: %d;\n", msg.size, msg.seq);
 	
-	msg.size = ((packet*)&buf[0])->size;
-	msg.seq = ((packet*)&buf[0])->seq;
-	printf("size: %d; seq: %d;\n", msg.size, msg.seq);
-	
 	msg.data_p = (uint8_t*)malloc(msg.size);
 	
 	// copy buffer to data
 	memcpy(msg.data_p, &buf[1], msg.size);
-	printf("data 0: %hhx; data 1: %hhx; data 2: %hhx", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
+	printf("data 0: %hhx; data 1: %hhx; data 2: %hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
 	return msg;
 }
 
@@ -102,8 +105,8 @@ bool command_str(msg_type_t c, char* command){
 	
 }
 
-int dorei(){
-	int sock = raw_socket_connection("eth0");
+int dorei(char* device){
+	int sock = raw_socket_connection(device);
 	uint8_t* buf = (uint8_t*)malloc(BUF_MAX); //to receive data
 	
 	packet msg;
