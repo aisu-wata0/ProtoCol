@@ -31,69 +31,6 @@ int frame_msg(uint8_t* buf, int buf_n){
 	return FAIL;
 }
 
-/**
- * @brief Uses bits in buf to make a packet
- */
-packet deserialize_msg(uint8_t* buf, int buf_n){
-	packet msg;
-	printf("Deserializing\n");
-	for(int j = 0; j < 5; j++){
-		printf("%hhx ", buf[j]);
-	}
-	printf("\n");
-	
-	msg.size = buf[0] >> 4;
-	msg.seq = (buf[0] << 4) >> 4;
-	//printf("size: %d; seq: %d;\n", msg.size, msg.seq);
-	
-	msg = *(packet*)&buf[0];
-	//printf("size: %d; seq: %d;\n", msg.size, msg.seq);
-	
-	msg.data_p = (uint8_t*)malloc(msg.size);
-	
-	// copy buffer to data
-	memcpy(msg.data_p, &buf[1], msg.size);
-	//printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
-	return msg;
-}
-
-///**
-// * @brief Uses bits in buf to make a packet
-// */
-//msg deserialize_msg(uint8_t* buf, int buf_n){
-////// sizesseq seqtypet datadata... paritypa
-//	packet msg;
-//	
-//	printf("Deserializing\n");
-//	for(int j = 0; j < 5; j++){
-//		printf("%hhx ", buf[j]);
-//	}
-//	printf("\n");
-//	
-//	msg.error = false;
-//	
-//	msg.size = buf[0] >> 3;
-//	msg.seq = (buf[0] & 0x3) | (buf[1] >> 5);
-//	msg.type = (buf[1] & 0b00011111);
-//	printf("size=%d; seq=%d; type=%d;\n", msg.size, msg.seq, msg.type);
-//	
-//	if(buf_n < 2+msg.size){
-//		fprintf(stderr, "received message buffer too small for said message size");
-//		msg.error = true;
-//	}
-//	
-//	msg.data_p = (uint8_t*)malloc(msg.size);
-//	// copy buffer to data
-//	memcpy(msg.data_p, &buf[2], msg.size);
-//	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
-//	
-//	if(msg.size > 0){
-//		msg.parity = buf[2+msg.size];
-//	}
-//	
-//	return true;
-//}
-
 void check_error(packet* msg){
 }
 //void check_error(packet* msg){
@@ -124,9 +61,11 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 
 	int msg_start;
 	msg_start = frame_msg(buf, buf_n);
-	
+	if(msg_start != 0){
+		return FAIL;
+	}
 	if(msg_start != FAIL){
-		*msg_p = deserialize_msg(&buf[msg_start], (buf_n-1) -msg_start +1);
+		*msg_p = deserialize(&buf[msg_start], (buf_n-1) -msg_start +1);
 		
 		if(msg_p->size > 0){
 			check_error(msg_p);
@@ -173,7 +112,9 @@ int dorei(char* device){
 	packet msg;
 	
 	while(true){
-		rec_packet(sock, &msg, buf);
+		while(rec_packet(sock, &msg, buf) == FAIL);
+		
+		print(msg);
 		
 //		if(msg.error){
 //			send_nack(msg);

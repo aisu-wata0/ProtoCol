@@ -29,22 +29,16 @@
 #define framing_bits 0b01111110
 #define frame_n 8
 
-//typedef struct {
-//	uint8_t frame:8;
-//	uint size:5;
-//	uint seq:6;
-//	msg_type type:5;
-//	uint8_t* data_p;
-//	uint8_t parity:8;
-//	uint8_t error;
-//} packet;
-//// framefra sizesseq seqtypet datadata... paritypa
-
 typedef struct {
-	uint8_t seq:4;
-	uint8_t size:4;
+	uint size:5; // of data
+	uint seq:6;
+	msg_type type:5;
 	uint8_t* data_p;
+	uint8_t parity:8; // of data
+	uint8_t error;
 } packet;
+// framefra(8) sizes(5) seq.seq(6) typet(5) data... parity(8)
+// frame sizeseq seqtypet
 
 typedef enum msg_type {
 	ack = 0x0,
@@ -75,6 +69,77 @@ void print(packet msg){
 		printf("%hhx ", i, msg.data_p[i]);
 	}
 	printf("\n");
+}
+
+/**
+ * @brief Serializes given message to buffer
+ * @param msg Message in packet type
+ * @param buf buffer to put msg data
+ * @return size of buffer containing msg
+ */
+int serialize(packet msg, uint8_t* buf){
+	uint8_t* buf;
+	int buf_n;
+	buf_n = 3 + msg.size;
+	
+	buf = (uint8_t*)malloc(buf_n+1);
+	
+	buf[0] = framing_bits;
+
+	/*size = 0x3;
+	size == 0b00011;*/
+	//buf[1] = (uint8_t)msg.size << 3;
+	buf[1] = msg.size << 3;
+	buf[1] = buf[1] & msg.seq >> 3;
+	
+	buf[2] = msg.seq << 5;
+	buf[2] = buf[2] & msg.type;
+
+	memcpy(&buf[3], msg.data_p, msg.size);
+	
+	if(msg.size > 0){
+		buf_n += 1;
+		buf[buf_n -1] = msg.parity;
+	}
+	
+	return buf_n;
+}
+
+/**
+ * @brief Uses bits in buf to make a packet
+ */
+msg deserialize(uint8_t* buf, int buf_n){
+// sizesseq seqtypet datadata... paritypa
+	packet msg;
+	
+	printf("Deserializing\n");
+	for(int j = 0; j < 5; j++){
+		printf("%hhx ", buf[j]);
+	}
+	printf("\n");
+	
+	msg.error = false;
+	
+	msg.size = buf[0] >> 3;
+	msg.seq = (buf[0] & 0x3) | (buf[1] >> 5);
+	msg.type = (buf[1] & 0b00011111);
+	printf("size=%d; seq=%d; type=%d;\n", msg.size, msg.seq, msg.type);
+	
+	if(buf_n < 2+msg.size){
+		fprintf(stderr, "received message buffer too small for said message size");
+		msg.error = true;
+	}
+	
+	msg.data_p = (uint8_t*)malloc(msg.size);
+	// copy buffer to data
+	memcpy(msg.data_p, &buf[2], msg.size);
+	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
+	
+	if(msg.size > 0){
+		msg.parity = buf[2+msg.size];
+	}
+	
+	return true;
 }
 
 /**
