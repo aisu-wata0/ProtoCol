@@ -31,16 +31,6 @@ int frame_msg(uint8_t* buf, int buf_n){
 	return FAIL;
 }
 
-void check_error(packet* msg){
-}
-//void check_error(packet* msg){
-//	uint8_t par = 0x0;
-//	for(int i = 0; i<msg.size; i++){
-//		par ^= msg.data_p[i]
-//	}
-//	msg.error = (par == msg.parity);
-//}
-
 /**
  * @brief Receives packet from raw socket
  * @param sock target socket
@@ -68,10 +58,6 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 
 	*msg_p = deserialize(&buf[msg_start], (buf_n-1) -msg_start +1);
 	
-	if(msg_p->size > 0){
-		check_error(msg_p);
-	}
-
 	printf("------------ end rec pack\n");
 	return msg_start;
 }
