@@ -51,14 +51,19 @@ int master(char* device){
 	uint8_t* buf = (uint8_t*)malloc(BUF_MAX); //to send data
 	
 	buf[0] = framing_bits;
+	buf[1] = framing_bits;
+	buf[2] = framing_bits;
+	buf[3] = framing_bits;
+	buf[4] = framing_bits;
+	buf[5] = framing_bits;
 	packet msg = *((packet*)&buf[1]);
-	msg.size = 0x3;
-	msg.seq = 0x1;
-	
-	// data
-	buf[2] = 0b10101010;
-	buf[3] = 0b10101011;
-	buf[4] = 0b10101111;
+//	msg.size = 0x3;
+//	msg.seq = 0x1;
+//	
+//	// data
+//	buf[2] = 0b10101010;
+//	buf[3] = 0b10101011;
+//	buf[4] = 0b10101111;
 	
 	printf("size: %d; seq: %d;\n", msg.size, msg.seq);
 	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", buf[2], buf[3], buf[4]);
@@ -66,7 +71,7 @@ int master(char* device){
 	while(true){
 		printf("."); // Debug
 		fflush(stdout);
-		sendto(sock, buf, sizeof(uint8_t)*4, 0, (struct sockaddr*)&addr_dest, sizeof(addr_dest));
+		sendto(sock, buf, sizeof(uint8_t)*16, 0, (struct sockaddr*)&addr_dest, sizeof(addr_dest));
 		
 //		if(error(msg)){
 //			send_nack(msg);
