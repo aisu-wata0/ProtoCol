@@ -56,7 +56,7 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 		return FAIL;
 	}
 
-	*msg_p = deserialize(&buf[msg_start], (buf_n-1) -msg_start +1);
+	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
 	
 	printf("------------ end rec pack\n");
 	return msg_start;
