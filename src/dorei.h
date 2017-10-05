@@ -66,7 +66,7 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 		return FAIL;
 	}
 
-	*msg_p = deserialize(&buf[msg_start], (buf_n-1) -msg_start +1);
+	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
 	
 	if(msg_p->size > 0){
 		check_error(msg_p);
