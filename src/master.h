@@ -47,32 +47,22 @@
 
 int master(char* device){
 	int sock = raw_socket_connection(device);
-	struct sockaddr_in addr_dest;
-	uint8_t* buf = (uint8_t*)malloc(BUF_MAX); //to send data
 	
-	memset(buf, 0, BUF_MAX);
+	uint8_t* buf;
 	
-	buf[0] = framing_bits;
-	packet msg = *((packet*)&buf[1]);
-//	msg.size = 0x3;
-//	msg.seq = 0x1;
-//	
-//	// data
-//	buf[2] = 0b10101010;
-//	buf[3] = 0b10101011;
-//	buf[4] = 0b10101111;
+	packet msg;
+	msg.size = 3;
+	msg.seq = 0;
+	msg.type = ls;
 	
-	printf("size: %d; seq: %d;\n", msg.size, msg.seq);
-	for(int i=0; i < 6; i++){
-		printf("[%d]=%hhx ", i, buf[i]);
-	}
-	printf("\n");
-
+	print(msg);
+	
+	buf = serialize(msg);
 	
 	while(true){
 		printf(".");
 		fflush(stdout);
-		sendto(sock, buf, sizeof(uint8_t)*16, 0, (struct sockaddr*)&addr_dest, sizeof(addr_dest));
+		send(sock, buf, sizeof(uint8_t)*16, 0);
 		
 //		if(error(msg)){
 //			send_nack(msg);

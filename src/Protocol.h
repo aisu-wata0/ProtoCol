@@ -48,16 +48,19 @@ typedef struct {
 
 typedef enum msg_type {
 	ack = 0x0,
-	tam = 0x2, // (?)
+	tam = 0x2,
+	ok = 0x3,
+	
 	cd = 0x6,
 	ls = 0x7,
 	get = 0x8,
 	put = 0x9,
 	end = 0xa,
-	ascii = 0xc, // (?)
+	
+	screen = 0xc,
 	data = 0xd,
 	error = 0xe,
-	fail = 0xf,
+	nack = 0xf,
 } msg_type_t;
 
 enum error_code {
@@ -65,6 +68,14 @@ enum error_code {
 	err_access = 0x2,
 	err_space = 0x3,
 };
+
+void print(packet msg){
+	printf("size=%x; seq=%x; type=%x\n", msg.size, msg.seq);
+	for(int i=0; i < msg.size; i++){
+		printf("%hhx ", i, msg.data_p[i]);
+	}
+	printf("\n");
+}
 
 /**
  * @brief shifts buffer by b bits to the left
