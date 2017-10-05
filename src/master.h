@@ -34,9 +34,6 @@
 int master(char* device){
 	int sock = raw_socket_connection(device);
 	
-	uint8_t* buf;
-	int buf_n;
-	
 	char* data = "kaka!";
 	
 	packet msg;
@@ -47,18 +44,11 @@ int master(char* device){
 	
 	print(msg);
 	
-	buf_n = serialize(msg, &buf);
-	
 	while(true){
 		printf(".");
 		fflush(stdout);
-		send(sock, buf, buf_n, 0);
+		send_msg(sock, msg);
 		
-//		if(error(msg)){
-//			send_nack(msg);
-//		} else {
-//			parse(msg);
-//		}
 		sleep(1);
 	}
 	return 0;

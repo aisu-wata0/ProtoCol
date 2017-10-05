@@ -142,6 +142,20 @@ packet deserialize(uint8_t* buf, int buf_n){
 	return msg;
 }
 
+void send_nack(int sock, packet msg){
+	packet response;
+	response.size = 0;
+	response.type = nack;
+}
+
+void send_msg(int sock, packet msg){
+	uint8_t* buf;
+	int buf_n;
+	
+	buf_n = serialize(msg, &buf);
+	send(sock, buf, buf_n, 0);
+}
+
 /**
  * @brief shifts buffer by b bits to the left
  */
