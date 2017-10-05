@@ -50,12 +50,9 @@ int master(char* device){
 	struct sockaddr_in addr_dest;
 	uint8_t* buf = (uint8_t*)malloc(BUF_MAX); //to send data
 	
+	memset(buf, 0, BUF_MAX);
+	
 	buf[0] = framing_bits;
-	buf[1] = framing_bits;
-	buf[2] = framing_bits;
-	buf[3] = framing_bits;
-	buf[4] = framing_bits;
-	buf[5] = framing_bits;
 	packet msg = *((packet*)&buf[1]);
 //	msg.size = 0x3;
 //	msg.seq = 0x1;
@@ -66,7 +63,11 @@ int master(char* device){
 //	buf[4] = 0b10101111;
 	
 	printf("size: %d; seq: %d;\n", msg.size, msg.seq);
-	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", buf[2], buf[3], buf[4]);
+	for(int i=0; i < 6; i++){
+		printf("[%d]=%hhx ", i, buf[i]);
+	}
+	printf("\n");
+
 	
 	while(true){
 		printf(".");
