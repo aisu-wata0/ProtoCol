@@ -31,38 +31,26 @@
 #include "Protocol.h"
 #include "Socket.h"
 
-//packet createMessage(){
-//	packet tegami;
-//	
-//	tegami.frame = framing_bits;
-//	tegami.size = 8;
-//	tegami.seq = 0;
-//	tegami.type = ls;
-//	tegami.data = (uint8_t*)malloc(sizeof(uint8_t)*1);
-//	tegami.parity = 0b10101010;	
-//	tegami.data[0] = 0b10101010;
-//	
-//	return tegami;
-//}
-
 int master(char* device){
 	int sock = raw_socket_connection(device);
 	
 	uint8_t* buf;
+	int buf_n;
 	
 	packet msg;
-	msg.size = 3;
+	msg.size = strlen("kaka!");
 	msg.seq = 0;
 	msg.type = ls;
+	msg.data_p = "kaka!";
 	
 	print(msg);
 	
-	buf = serialize(msg);
+	buf_n = serialize(msg, &buf);
 	
 	while(true){
 		printf(".");
 		fflush(stdout);
-		send(sock, buf, sizeof(uint8_t)*16, 0);
+		send(sock, buf, buf_n, 0);
 		
 //		if(error(msg)){
 //			send_nack(msg);
