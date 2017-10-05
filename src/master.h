@@ -69,7 +69,7 @@ int master(char* device){
 	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", buf[2], buf[3], buf[4]);
 	
 	while(true){
-		printf("."); // Debug
+		printf(".");
 		fflush(stdout);
 		sendto(sock, buf, sizeof(uint8_t)*16, 0, (struct sockaddr*)&addr_dest, sizeof(addr_dest));
 		
@@ -78,7 +78,7 @@ int master(char* device){
 //		} else {
 //			parse(msg);
 //		}
-		sleep(1); // Debug
+		sleep(1);
 	}
 	return 0;
 }

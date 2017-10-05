@@ -14,19 +14,15 @@
  * @return position [i] where the message starts, -1 if no message
  */
 int frame_msg(uint8_t* buf, int buf_n){
-	printf("Received message of size = %d, searching frame\n", buf_n);
+	printf("<<< Received message of size = %d, searching frame\n", buf_n);
 	for(int i = 0; i < buf_n; i++){
 		for (int bit = 0; bit <= frame_n-1; bit++){
 			uint8_t pattern = buf[i] << bit;
 			pattern |= buf[i+1] >> (frame_n -bit);
 			if (pattern == framing_bits){
-				printf("shifting by %d bits", bit);
-				for(int j = i; j < i+6; j++){
-					printf("%hhx ", buf[j]);
-				}
-				printf("\n");
+				printf("shifting by %d bits\n", bit);
 				shift_left(&buf[i], (buf_n-1) -(i) + 1, bit);
-				printf("found at: %d, %hhx\n", i, buf[i]);
+				printf(">>> found at: %d\n", i);
 				return i;
 			}
 		}
@@ -48,16 +44,16 @@ packet deserialize_msg(uint8_t* buf, int buf_n){
 	
 	msg.size = buf[0] >> 4;
 	msg.seq = (buf[0] << 4) >> 4;
-	printf("size: %d; seq: %d;\n", msg.size, msg.seq);
+	//printf("size: %d; seq: %d;\n", msg.size, msg.seq);
 	
 	msg = *(packet*)&buf[0];
-	printf("size: %d; seq: %d;\n", msg.size, msg.seq);
+	//printf("size: %d; seq: %d;\n", msg.size, msg.seq);
 	
 	msg.data_p = (uint8_t*)malloc(msg.size);
 	
 	// copy buffer to data
 	memcpy(msg.data_p, &buf[1], msg.size);
-	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
+	//printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
 	return msg;
 }
 
@@ -69,6 +65,7 @@ packet deserialize_msg(uint8_t* buf, int buf_n){
  * @return 
  */
 int rec_packet(int sock, packet* msg, uint8_t* buf){
+	printf("+++++++++\n");
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
 	
@@ -80,12 +77,21 @@ int rec_packet(int sock, packet* msg, uint8_t* buf){
 
 	int msg_start;
 	msg_start = frame_msg(buf, buf_n);
-	while(msg_start != FAIL){
+	
+	if(msg_start != FAIL){
 		*msg = deserialize_msg(&buf[msg_start], (buf_n-1) -msg_start +1);
-		printf("other frames\n");
-		msg_start = frame_msg(&buf[msg_start+1], buf_n);
 	}
-	printf("end rec pack");
+//	while(msg_start != FAIL){
+//		*msg = deserialize_msg(&buf[msg_start], (buf_n-1) -msg_start +1);
+//		printf("other frames\n");
+//		int oldms = msg_start+1;
+//		msg_start = frame_msg(&buf[msg_start+1], (buf_n-1) -(msg_start+1) + 1);
+//		if(msg_start != FAIL){
+//			msg_start += oldms;
+//		}
+//	}
+
+	printf("------------ end rec pack\n");
 	return msg_start;
 }
 
@@ -116,14 +122,14 @@ int dorei(char* device){
 	packet msg;
 	
 	while(true){
-		while( rec_packet(sock, &msg, buf) == FAIL );
+		rec_packet(sock, &msg, buf);
 		
 //		if(error(msg)){
 //			send_nack(msg);
 //		} else {
 //			parse(msg);
 //		}
-		sleep(1); // Debug
+		sleep(1);
 	}
 	return 0;
 }
