@@ -36,6 +36,7 @@
 //	msg_type type:5;
 //	uint8_t* data_p;
 //	uint8_t parity:8;
+//	uint8_t error;
 //} packet;
 //// framefra sizesseq seqtypet datadata... paritypa
 
@@ -106,5 +107,4 @@ void shift_right(uint8_t* buf, int buf_n, int bit){
  */
 }
 
- 
 #endif
