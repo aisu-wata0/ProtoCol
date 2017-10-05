@@ -20,11 +20,13 @@ int frame_msg(uint8_t* buf, int buf_n){
 			uint8_t pattern = buf[i] << bit;
 			pattern |= buf[i+1] >> (frame_n -bit);
 			if (pattern == framing_bits){
+				printf("shifting by %d bits", bit);
+				for(int j = i; j < i+6; j++){
+					printf("%hhx ", buf[j]);
+				}
+				printf("\n");
 				shift_left(&buf[i], (buf_n-1) -(i) + 1, bit);
 				printf("found at: %d, %hhx\n", i, buf[i]);
-				for(int j = i-1; j < i+5; j++){
-					printf("j: %d, %hhx\n", j, buf[j]);
-				}
 				return i;
 			}
 		}
@@ -40,8 +42,9 @@ packet deserialize_msg(uint8_t* buf, int buf_n){
 	packet msg;
 	printf("Deserializing\n");
 	for(int j = 0; j < 5; j++){
-		printf("j: %d, %hhx\n", j, buf[j]);
+		printf("%hhx ", buf[j]);
 	}
+	printf("\n");
 	
 	msg.size = buf[0] >> 4;
 	msg.seq = (buf[0] << 4) >> 4;
@@ -54,7 +57,7 @@ packet deserialize_msg(uint8_t* buf, int buf_n){
 	
 	// copy buffer to data
 	memcpy(msg.data_p, &buf[1], msg.size);
-	printf("data 0: %hhx; data 1: %hhx; data 2: %hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
+	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
 	return msg;
 }
 
@@ -77,11 +80,12 @@ int rec_packet(int sock, packet* msg, uint8_t* buf){
 
 	int msg_start;
 	msg_start = frame_msg(buf, buf_n);
-	
-	if(msg_start != FAIL){
+	while(msg_start != FAIL){
 		*msg = deserialize_msg(&buf[msg_start], (buf_n-1) -msg_start +1);
+		printf("other frames\n");
+		msg_start = frame_msg(&buf[msg_start+1], buf_n);
 	}
-	
+	printf("end rec pack");
 	return msg_start;
 }
 
