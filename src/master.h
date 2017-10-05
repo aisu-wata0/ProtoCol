@@ -49,16 +49,19 @@ int master(char* device){
 	int sock = raw_socket_connection(device);
 	struct sockaddr_in addr_dest;
 	uint8_t* buf = (uint8_t*)malloc(BUF_MAX); //to send data
+	
 	buf[0] = framing_bits;
-	buf[1] = 0b00110001;
+	packet msg = *((packet*)&buf[1]);
+	msg.size = 0x3;
+	msg.seq = 0x1;
+	
 	// data
 	buf[2] = 0b10101010;
 	buf[3] = 0b10101011;
 	buf[4] = 0b10101111;
 	
-	packet msg = *((msg*)buf);
 	printf("size: %d; seq: %d;\n", msg.size, msg.seq);
-	printf("data 0: %hhx; data 1: %hhx; data 2: %hhx\n", buf[2], buf[3], buf[4]);
+	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", buf[2], buf[3], buf[4]);
 	
 	while(true){
 		printf("."); // Debug

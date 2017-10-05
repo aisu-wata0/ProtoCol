@@ -40,8 +40,8 @@
 //// framefra sizesseq seqtypet datadata... paritypa
 
 typedef struct {
-	uint8_t size:4;
 	uint8_t seq:4;
+	uint8_t size:4;
 	uint8_t* data_p;
 } packet;
 

@@ -6,7 +6,7 @@
 
 int main(int argc, char **argv) {
 	int c;
-	char* device;
+	char* device = NULL;
 	
 	while (( c = getopt(argc, argv, "n:md")) != -1){
 		switch (c){
