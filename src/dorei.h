@@ -61,25 +61,16 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 
 	int msg_start;
 	msg_start = frame_msg(buf, buf_n);
+	
 	if(msg_start != 0){
 		return FAIL;
 	}
-	if(msg_start != FAIL){
-		*msg_p = deserialize(&buf[msg_start], (buf_n-1) -msg_start +1);
-		
-		if(msg_p->size > 0){
-			check_error(msg_p);
-		}
+
+	*msg_p = deserialize(&buf[msg_start], (buf_n-1) -msg_start +1);
+	
+	if(msg_p->size > 0){
+		check_error(msg_p);
 	}
-//	while(msg_start != FAIL){
-//		*msg_p = deserialize_msg(&buf[msg_start], (buf_n-1) -msg_start +1);
-//		printf("other frames\n");
-//		int oldms = msg_start+1;
-//		msg_start = frame_msg(&buf[msg_start+1], (buf_n-1) -(msg_start+1) + 1);
-//		if(msg_start != FAIL){
-//			msg_start += oldms;
-//		}
-//	}
 
 	printf("------------ end rec pack\n");
 	return msg_start;
