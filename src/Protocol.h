@@ -82,26 +82,26 @@ int serialize(packet msg, uint8_t** buf){
 	int buf_n;
 	buf_n = 3 + msg.size;
 	
-	buf = (uint8_t*)malloc(buf_n+1);
+	*buf = (uint8_t*)malloc(buf_n+1);
 	
-	buf[0] = framing_bits;
+	*buf[0] = framing_bits;
 
 	/*size = 0x3;
 	size == 0b00011;*/
 	//buf[1] = (uint8_t)msg.size << 3;
-	buf[1] = msg.size << 3;
-	buf[1] = buf[1] & msg.seq >> 3;
+	*buf[1] = msg.size << 3;
+	*buf[1] = *buf[1] & msg.seq >> 3;
 	
-	buf[2] = msg.seq << 5;
-	buf[2] = buf[2] & msg.type;
+	*buf[2] = msg.seq << 5;
+	*buf[2] = *buf[2] & msg.type;
 
-	memcpy(&buf[3], msg.data_p, msg.size);
+	memcpy(&(*buf[3]), msg.data_p, msg.size);
 	
 	if(msg.size > 0){
 		buf_n += 1;
-		buf[buf_n -1] = msg.parity;
+		*buf[buf_n -1] = msg.parity;
 	}
-	
+
 	return buf_n;
 }
 
