@@ -30,14 +30,19 @@
 #define frame_n 8
 
 //typedef struct {
-//	uint8_t frame:8;
 //	uint size:5;
 //	uint seq:6;
 //	msg_type type:5;
 //	uint8_t* data_p;
 //	uint8_t parity:8;
 //} packet;
-//// framefra sizesseq seqtypet datadata... paritypa
+//// framefra(8) size(5) seq(6) type(5) data(?)... parity(8)
+// frame sizeseq seqtypet
+// size = onlyData
+
+/*size = 0x3;
+size = 0b10000;
+byt = size << 3;*/
 
 typedef struct {
 	uint8_t seq:4;
@@ -64,7 +69,37 @@ enum error_code {
 	err_access = 0x2,
 	err_space = 0x3,
 };
+/**
+ * @brief Serializes given message to buffer
+ * @param msg Message in packet type
+ * @param buf buffer to put msg data
+ * @return size of buffer containing msg
+ */
+/*int serialize_msg(packet msg, uint8_t* buf){
+	uint8_t* buf;
+	int buf_n;
+	buf_n = 3 + msg.size;
+	
+	buf = (uint8_t*)malloc(buf_n+1);
+	
+	buf[0] = framing_bits;
 
+	//buf[1] = (uint8_t)msg.size << 3;
+	buf[1] = msg.size << 3;
+	buf[1] = buf[1] & msg.seq >> 3;
+	
+	buf[2] = msg.seq << 5;
+	buf[2] = buf[2] & msg.type;
+
+	memcpy(&buf[3], msg.data_p, msg.size);
+	
+	if(msg.size > 0){
+		buf_n += 1;
+		buf[buf_n -1] = msg.parity;
+	}
+	
+	return buf_n;
+}*/
 /**
  * @brief shifts buffer by b bits to the left
  */
