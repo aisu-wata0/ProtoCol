@@ -29,17 +29,6 @@
 #define framing_bits 0b01111110
 #define frame_n 8
 
-typedef struct {
-	uint size:5; // of data
-	uint seq:6;
-	msg_type type:5;
-	uint8_t* data_p;
-	uint8_t parity:8; // of data
-	uint8_t error;
-} packet;
-// framefra(8) sizes(5) seq.seq(6) typet(5) data... parity(8)
-// frame sizeseq seqtypet
-
 typedef enum msg_type {
 	ack = 0x0,
 	tam = 0x2,
@@ -63,11 +52,23 @@ enum error_code {
 	err_space = 0x3,
 };
 
+typedef struct {
+	uint size:5; // of data
+	uint seq:6;
+	msg_type_t type:5;
+	uint8_t* data_p;
+	uint8_t parity:8; // of data
+	uint8_t error;
+} packet;
+// framefra(8) sizes(5) seq.seq(6) typet(5) data... parity(8)
+// frame sizeseq seqtypet
+
 void print(packet msg){
-	printf("size=%x; seq=%x; type=%x\n", msg.size, msg.seq);
+	printf("size=%x; seq=%x; type=%x\n", msg.size, msg.seq, msg.type);
 	for(int i=0; i < msg.size; i++){
-		printf("%hhx ", i, msg.data_p[i]);
+		printf("%hhx ", msg.data_p[i]);
 	}
+	printf("parity=%hhx ", msg.parity);
 	printf("\n");
 }
 
@@ -77,8 +78,7 @@ void print(packet msg){
  * @param buf buffer to put msg data
  * @return size of buffer containing msg
  */
-int serialize(packet msg, uint8_t* buf){
-	uint8_t* buf;
+int serialize(packet msg, uint8_t** buf){
 	int buf_n;
 	buf_n = 3 + msg.size;
 	
@@ -108,7 +108,7 @@ int serialize(packet msg, uint8_t* buf){
 /**
  * @brief Uses bits in buf to make a packet
  */
-msg deserialize(uint8_t* buf, int buf_n){
+packet deserialize(uint8_t* buf, int buf_n){
 // sizesseq seqtypet datadata... paritypa
 	packet msg;
 	
@@ -139,7 +139,7 @@ msg deserialize(uint8_t* buf, int buf_n){
 		msg.parity = buf[2+msg.size];
 	}
 	
-	return true;
+	return msg;
 }
 
 /**

@@ -37,11 +37,13 @@ int master(char* device){
 	uint8_t* buf;
 	int buf_n;
 	
+	char* data = "kaka!";
+	
 	packet msg;
-	msg.size = strlen("kaka!");
+	msg.size = strlen(data);
 	msg.seq = 0;
 	msg.type = ls;
-	msg.data_p = "kaka!";
+	msg.data_p = (uint8_t*)data;
 	
 	print(msg);
 	
