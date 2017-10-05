@@ -43,9 +43,10 @@ packet deserialize_msg(uint8_t* buf, int buf_n){
 	printf("\n");
 	
 	msg.size = buf[0] >> 4;
-	msg.seq = (buf[0] << 4) >> 4;
-	//printf("size: %d; seq: %d;\n", msg.size, msg.seq);
+	msg.seq = buf[0] & 0b00001111;
 	
+	//printf("size: %d; seq: %d;\n", msg.size, msg.seq);
+
 	msg = *(packet*)&buf[0];
 	//printf("size: %d; seq: %d;\n", msg.size, msg.seq);
 	
