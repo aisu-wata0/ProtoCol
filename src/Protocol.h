@@ -63,47 +63,16 @@ typedef struct {
 // framefra(8) sizes(5) seq.seq(6) typet(5) data... parity(8)
 // frame sizeseq seqtypet
 
-void print(packet msg){
-	printf("size=%x; seq=%x; type=%x\n", msg.size, msg.seq, msg.type);
-	for(int i=0; i < msg.size; i++){
-		printf("%hhx ", msg.data_p[i]);
+uint8_t parity(packet msg){
+	uint8_t par = 0x00;
+	for(int i = 0; i < msg.size; i++){
+		par ^= msg.data_p[i];
 	}
-	printf("parity=%hhx ", msg.parity);
-	printf("\n");
+	return par;
 }
 
-/**
- * @brief Serializes given message to buffer
- * @param msg Message in packet type
- * @param buf buffer to put msg data
- * @return size of buffer containing msg
- */
-int serialize(packet msg, uint8_t** buf_p){
-	int buf_n;
-	buf_n = 3 + msg.size;
-	*buf_p = (uint8_t*)malloc(buf_n+1);
-	
-	uint8_t* buf = *buf_p;
-	
-	buf[0] = framing_bits;
-
-	/*size = 0x3;
-	size == 0b00011;*/
-	//buf[1] = (uint8_t)msg.size << 3;
-	buf[1] = msg.size << 3;
-	buf[1] = buf[1] & msg.seq >> 3;
-	
-	buf[2] = msg.seq << 5;
-	buf[2] = buf[2] & msg.type;
-
-	memcpy(&(buf[3]), msg.data_p, msg.size);
-	
-	if(msg.size > 0){
-		buf_n += 1;
-		buf[buf_n -1] = msg.parity;
-	}
-
-	return buf_n;
+bool has_error(packet msg){
+	return (parity(msg) == msg.parity);
 }
 
 /**
@@ -138,9 +107,42 @@ packet deserialize(uint8_t* buf, int buf_n){
 	
 	if(msg.size > 0){
 		msg.parity = buf[2+msg.size];
+		msg.error = has_error(msg);
 	}
 	
 	return msg;
+}
+
+/**
+ * @brief Serializes given message to buffer
+ * @param msg Message in packet type
+ * @param buf buffer to put msg data
+ * @return size of buffer containing msg
+ */
+int serialize(packet msg, uint8_t** buf_p){
+// sizesseq seqtypet datadata... paritypa
+	int buf_n;
+	buf_n = 3 + msg.size;
+	*buf_p = (uint8_t*)malloc(buf_n+1);
+	
+	uint8_t* buf = *buf_p;
+	
+	buf[0] = framing_bits;
+
+	buf[1] = msg.size << 3;
+	buf[1] = buf[1] | (msg.seq >> 3);
+	
+	buf[2] = msg.seq << 5;
+	buf[2] = buf[2] | msg.type;
+
+	memcpy(&(buf[3]), msg.data_p, msg.size);
+	
+	if(msg.size > 0){
+		buf_n += 1;
+		buf[buf_n-1] = parity(msg);
+	}
+	
+	return buf_n;
 }
 
 void send_nack(int sock, packet msg){
@@ -154,7 +156,20 @@ void send_msg(int sock, packet msg){
 	int buf_n;
 	
 	buf_n = serialize(msg, &buf);
+	for(int i=0; i < msg.size+4; i++){
+		printf("%hhx ", buf[i]);
+	}
+	printf("\n");
 	send(sock, buf, buf_n, 0);
+}
+
+void print(packet msg){
+	printf("size=%x; seq=%x; type=%x\n", msg.size, msg.seq, msg.type);
+	for(int i=0; i < msg.size; i++){
+		printf("%hhx ", msg.data_p[i]);
+	}
+	printf("parity=%hhx ", parity(msg));
+	printf("\n");
 }
 
 /**

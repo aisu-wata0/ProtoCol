@@ -36,6 +36,11 @@ int master(char* device){
 	
 	char* data = "kaka!";
 	
+	for(int i = 0; i < strlen(data); i++){
+		printf("%hhx ",data[i]);
+	}
+	printf("\n");
+	
 	packet msg;
 	msg.size = strlen(data);
 	msg.seq = 0;
@@ -45,9 +50,8 @@ int master(char* device){
 	print(msg);
 	
 	while(true){
-		printf(".");
-		fflush(stdout);
 		send_msg(sock, msg);
+		fflush(stdout);
 		
 		sleep(1);
 	}
