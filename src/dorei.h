@@ -58,6 +58,53 @@ packet deserialize_msg(uint8_t* buf, int buf_n){
 	return msg;
 }
 
+///**
+// * @brief Uses bits in buf to make a packet
+// */
+//msg deserialize_msg(uint8_t* buf, int buf_n){
+////// sizesseq seqtypet datadata... paritypa
+//	packet msg;
+//	
+//	printf("Deserializing\n");
+//	for(int j = 0; j < 5; j++){
+//		printf("%hhx ", buf[j]);
+//	}
+//	printf("\n");
+//	
+//	msg.error = false;
+//	
+//	msg.size = buf[0] >> 3;
+//	msg.seq = (buf[0] & 0x3) | (buf[1] >> 5);
+//	msg.type = (buf[1] & 0b00011111);
+//	printf("size=%d; seq=%d; type=%d;\n", msg.size, msg.seq, msg.type);
+//	
+//	if(buf_n < 2+msg.size){
+//		fprintf(stderr, "received message buffer too small for said message size");
+//		msg.error = true;
+//	}
+//	
+//	msg.data_p = (uint8_t*)malloc(msg.size);
+//	// copy buffer to data
+//	memcpy(msg.data_p, &buf[2], msg.size);
+//	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
+//	
+//	if(msg.size > 0){
+//		msg.parity = buf[2+msg.size];
+//	}
+//	
+//	return true;
+//}
+
+void check_error(packet* msg){
+}
+//void check_error(packet* msg){
+//	uint8_t par = 0x0;
+//	for(int i = 0; i<msg.size; i++){
+//		par ^= msg.data_p[i]
+//	}
+//	msg.error = (par == msg.parity);
+//}
+
 /**
  * @brief Receives packet from raw socket
  * @param sock target socket
@@ -65,7 +112,7 @@ packet deserialize_msg(uint8_t* buf, int buf_n){
  * @param buf previously allocated buffer
  * @return 
  */
-int rec_packet(int sock, packet* msg, uint8_t* buf){
+int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 	printf("+++++++++\n");
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
@@ -80,10 +127,14 @@ int rec_packet(int sock, packet* msg, uint8_t* buf){
 	msg_start = frame_msg(buf, buf_n);
 	
 	if(msg_start != FAIL){
-		*msg = deserialize_msg(&buf[msg_start], (buf_n-1) -msg_start +1);
+		*msg_p = deserialize_msg(&buf[msg_start], (buf_n-1) -msg_start +1);
+		
+		if(msg_p->size > 0){
+			check_error(msg_p);
+		}
 	}
 //	while(msg_start != FAIL){
-//		*msg = deserialize_msg(&buf[msg_start], (buf_n-1) -msg_start +1);
+//		*msg_p = deserialize_msg(&buf[msg_start], (buf_n-1) -msg_start +1);
 //		printf("other frames\n");
 //		int oldms = msg_start+1;
 //		msg_start = frame_msg(&buf[msg_start+1], (buf_n-1) -(msg_start+1) + 1);
@@ -125,7 +176,7 @@ int dorei(char* device){
 	while(true){
 		rec_packet(sock, &msg, buf);
 		
-//		if(error(msg)){
+//		if(msg.error){
 //			send_nack(msg);
 //		} else {
 //			parse(msg);
