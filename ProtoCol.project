@@ -13,6 +13,7 @@
     <File Name="src/Socket.h"/>
     <File Name="src/master.h"/>
     <File Name="src/dorei.h"/>
+    <File Name="src/SlidingWindow.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="root">
     <File Name="Makefile"/>

@@ -69,7 +69,9 @@ enum error_code {
 #define seq_b 6
 #define type_b 5
 #define parity_b 8
-#define BUF_MAX 65536
+
+#define data_max (0x1 << size_b)-1 // (2^size_b)-1 maximum size of data
+#define BUF_MAX 4 + data_max
 
 typedef struct {
 	uint size : size_b; // of data
@@ -101,28 +103,20 @@ packet deserialize(uint8_t* buf, int buf_n){
 // sizesseq seqtypet datadata... paritypa
 	packet msg;
 	
-	printf("Deserializing\n");
-	for(int j = 0; j < 5; j++){
-		printf("%hhx ", buf[j]);
-	}
-	printf("\n");
-	
 	msg.error = false;
 	
 	msg.size = buf[0] >> 3;
 	msg.seq = (buf[0] & 0x3) | (buf[1] >> 5);
 	msg.type = (buf[1] & 0b00011111);
-	printf("size=%d; seq=%d; type=%d;\n", msg.size, msg.seq, msg.type);
 	
 	if(buf_n < 2+msg.size){
-		fprintf(stderr, "received message buffer too small for said message size");
+		// fprintf(stderr, "received message buffer too small for said message size");
 		msg.error = true;
 	}
 	
 	msg.data_p = (uint8_t*)malloc(msg.size);
 	// copy buffer to data
 	memcpy(msg.data_p, &buf[2], msg.size);
-	printf("[0]=%hhx [1]=%hhx [2]=%hhx\n", msg.data_p[0], msg.data_p[1], msg.data_p[2]);
 	
 	if(msg.size > 0){
 		msg.parity = buf[2+msg.size];
@@ -175,10 +169,7 @@ void send_msg(int sock, packet msg){
 	int buf_n;
 	
 	buf_n = serialize(msg, &buf);
-	for(int i=0; i < msg.size+4; i++){
-		printf("%hhx ", buf[i]);
-	}
-	printf("\n");
+
 	send(sock, buf, buf_n, 0);
 }
 
@@ -237,20 +228,16 @@ void shift_right(uint8_t* buf, int buf_n, int bit){
  * @return position [i] where the message starts, -1 if no message
  */
 int frame_msg(uint8_t* buf, int buf_n){
-	printf("<<< Received message of size = %d, searching frame\n", buf_n);
 	for(int i = 0; i < buf_n; i++){
 		for (int bit = 0; bit <= frame_b-1; bit++){
 			uint8_t pattern = buf[i] << bit;
 			pattern |= buf[i+1] >> (frame_b -bit);
 			if (pattern == framing_bits){
-				printf("shifting by %d bits\n", bit);
 				shift_left(&buf[i], (buf_n-1) -(i) + 1, bit);
-				printf(">>> found at: %d\n", i);
 				return i;
 			}
 		}
 	}
-	printf("none found\n\n");
 	return FAIL;
 }
 
@@ -262,26 +249,26 @@ int frame_msg(uint8_t* buf, int buf_n){
  * @return 
  */
 int rec_packet(int sock, packet* msg_p, uint8_t* buf){
-	printf("+++++++++\n");
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
-	
-	memset(buf, 0, BUF_MAX);
-	int buf_n = 0;
-	while(buf_n == 0){
-		buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
-	} // receive a network packet and copy in to buffer
 
-	int msg_start;
-	msg_start = frame_msg(buf, buf_n);
+	int msg_start = -1;
 	
-	if(msg_start != 0){
-		return FAIL;
+	while(msg_start != 0){
+		memset(buf, 0, BUF_MAX);
+		int buf_n = 0;
+		while(buf_n == 0){
+			buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
+		} // receive a network packet and copy in to buffer
+		
+		if(buf[0] == framing_bits){
+			msg_start = 0;
+		}
+		//msg_start = frame_msg(buf, buf_n);
 	}
 
 	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
-	
-	printf("------------ end rec pack\n");
+
 	return msg_start;
 }
 
