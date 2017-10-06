@@ -25,10 +25,6 @@
 
 #define FAIL -1
 
-#define BUF_MAX 65536
-#define framing_bits 0b01111110
-#define frame_n 8
-
 typedef enum msg_type {
 	ack = 0x0,
 	tam = 0x2,
@@ -46,18 +42,41 @@ typedef enum msg_type {
 	nack = 0xf,
 } msg_type_t;
 
+bool command_str(msg_type_t c, char* command){
+	switch(c){
+		case cd:
+			strcpy(command, "cd ");
+			break;
+		case ls:
+			strcpy(command, "ls ");
+			break;
+		default:
+			command[0] = '\0';
+			return false;
+	}
+	return true;
+}
+
 enum error_code {
 	err_inexistent = 0x1,
 	err_access = 0x2,
 	err_space = 0x3,
 };
 
+#define framing_bits 0b01111110
+#define frame_b 8
+#define size_b 5
+#define seq_b 6
+#define type_b 5
+#define parity_b 8
+#define BUF_MAX 65536
+
 typedef struct {
-	uint size:5; // of data
-	uint seq:6;
-	msg_type_t type:5;
+	uint size : size_b; // of data
+	uint seq : seq_b;
+	msg_type_t type : type_b;
 	uint8_t* data_p;
-	uint8_t parity:8; // of data
+	uint8_t parity : parity_b; // of data
 	uint8_t error;
 } packet;
 // framefra(8) sizes(5) seq.seq(6) typet(5) data... parity(8)
@@ -180,7 +199,7 @@ void shift_left(uint8_t* buf, int buf_n, int bit){
 	
 	for(int i = 0; i < buf_n; i++){
 		uint8_t byt = buf[i] << bit; // buf[i] if but == 0
-		byt |= buf[i+1] >> (frame_n -bit); // 0 if bit == 0
+		byt |= buf[i+1] >> (frame_b -bit); // 0 if bit == 0
 		buf[i] = byt;
 	}
 /** shifting 1 bit left
@@ -199,7 +218,7 @@ void shift_right(uint8_t* buf, int buf_n, int bit){
 	uint8_t byt_next = buf[i+1];
 	
 	for(i = 0; i < buf_n; i++){
-		uint8_t byt = buf[i] << (frame_n -bit); // buf[i] if but == 0
+		uint8_t byt = buf[i] << (frame_b -bit); // buf[i] if but == 0
 		byt |= byt_next >> bit; // 0 if bit == 0
 		// save bits that will be right shifted to use on next loop
 		// before overwriting them below
@@ -211,6 +230,59 @@ void shift_right(uint8_t* buf, int buf_n, int bit){
  * 01234567 01234567
  * 00123456 70123456 (7...
  */
+}
+
+/**
+ * @brief Finds the start of the message
+ * @return position [i] where the message starts, -1 if no message
+ */
+int frame_msg(uint8_t* buf, int buf_n){
+	printf("<<< Received message of size = %d, searching frame\n", buf_n);
+	for(int i = 0; i < buf_n; i++){
+		for (int bit = 0; bit <= frame_b-1; bit++){
+			uint8_t pattern = buf[i] << bit;
+			pattern |= buf[i+1] >> (frame_b -bit);
+			if (pattern == framing_bits){
+				printf("shifting by %d bits\n", bit);
+				shift_left(&buf[i], (buf_n-1) -(i) + 1, bit);
+				printf(">>> found at: %d\n", i);
+				return i;
+			}
+		}
+	}
+	printf("none found\n\n");
+	return FAIL;
+}
+
+/**
+ * @brief Receives packet from raw socket
+ * @param sock target socket
+ * @param msg by reference
+ * @param buf previously allocated buffer
+ * @return 
+ */
+int rec_packet(int sock, packet* msg_p, uint8_t* buf){
+	printf("+++++++++\n");
+	struct sockaddr saddr;
+	int saddr_len = sizeof(saddr);
+	
+	memset(buf, 0, BUF_MAX);
+	int buf_n = 0;
+	while(buf_n == 0){
+		buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
+	} // receive a network packet and copy in to buffer
+
+	int msg_start;
+	msg_start = frame_msg(buf, buf_n);
+	
+	if(msg_start != 0){
+		return FAIL;
+	}
+
+	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
+	
+	printf("------------ end rec pack\n");
+	return msg_start;
 }
 
 #endif
