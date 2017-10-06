@@ -272,4 +272,33 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 	return msg_start;
 }
 
+/**
+ * @brief Receives packet from raw socket
+ * @param sock target socket
+ * @param msg by reference
+ * @param buf previously allocated buffer
+ * @return 
+ */
+int try_packet(int sock, packet* msg_p, uint8_t* buf){
+	struct sockaddr saddr;
+	int saddr_len = sizeof(saddr);
+
+	int msg_start = -1;
+	
+	
+	memset(buf, 0, BUF_MAX);
+	int buf_n = 0;
+	
+	buf_n = recvfrom(sock, buf, BUF_MAX, MSG_DONTWAIT, &saddr, (socklen_t *)&saddr_len);
+	// receive a network packet and copy in to buffer
+	
+	if(buf[0] != framing_bits){
+		return 0;
+	}
+
+	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
+
+	return buf_n;
+}
+
 #endif
