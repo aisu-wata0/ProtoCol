@@ -252,12 +252,12 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
 
+	int buf_n = 0;
 	int msg_start = -1;
 	
 	while(msg_start != 0){
 		memset(buf, 0, BUF_MAX);
-		int buf_n = 0;
-		while(buf_n == 0){
+		while(buf_n < 1){
 			buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
 		} // receive a network packet and copy in to buffer
 		
@@ -282,9 +282,6 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 int try_packet(int sock, packet* msg_p, uint8_t* buf){
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
-
-	int msg_start = -1;
-	
 	
 	memset(buf, 0, BUF_MAX);
 	int buf_n = 0;
@@ -296,7 +293,7 @@ int try_packet(int sock, packet* msg_p, uint8_t* buf){
 		return 0;
 	}
 
-	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
+	*msg_p = deserialize(&buf[1], buf_n-1);
 
 	return buf_n;
 }
