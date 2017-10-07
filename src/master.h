@@ -51,7 +51,6 @@ int master(char* device){
 	
 	while(true){
 		send_msg(sock, msg);
-		fflush(stdout);
 		
 		sleep(1);
 	}

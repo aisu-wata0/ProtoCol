@@ -237,20 +237,19 @@ void shift_right(uint8_t* buf, int buf_n, int bit){
  * @return position [i] where the message starts, -1 if no message
  */
 int frame_msg(uint8_t* buf, int buf_n){
-	printf("<<< Received message of size = %d, searching frame\n", buf_n);
+	printf("< Received message of size = %d, searching frame\n", buf_n);
 	for(int i = 0; i < buf_n; i++){
 		for (int bit = 0; bit <= frame_b-1; bit++){
 			uint8_t pattern = buf[i] << bit;
 			pattern |= buf[i+1] >> (frame_b -bit);
 			if (pattern == framing_bits){
-				printf("shifting by %d bits\n", bit);
 				shift_left(&buf[i], (buf_n-1) -(i) + 1, bit);
-				printf(">>> found at: %d\n", i);
+				printf("> found at: %d  shifting by %d bits\n", i, bit);
 				return i;
 			}
 		}
 	}
-	printf("none found\n\n");
+	printf("\n");
 	return FAIL;
 }
 
@@ -262,7 +261,6 @@ int frame_msg(uint8_t* buf, int buf_n){
  * @return 
  */
 int rec_packet(int sock, packet* msg_p, uint8_t* buf){
-	printf("+++++++++\n");
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
 	
@@ -281,7 +279,6 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 
 	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
 	
-	printf("------------ end rec pack\n");
 	return msg_start;
 }
 
