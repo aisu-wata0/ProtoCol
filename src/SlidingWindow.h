@@ -2,9 +2,10 @@
 #define SLIDINGWINDOW_H
 
 #include <math.h>
+#include "Protocol.h"
 
 #define window_size 3
-#define win_mod(X) (X % window_size)
+#define w_mod(X) mod((X),(window_size)) 
 
 typedef struct {
 	packet arr[window_size];
@@ -13,9 +14,9 @@ typedef struct {
 	int acc;
 } Window;
 
-// index of last element; by definition win_mod(start -1)
+// index of last element; by definition w_mod(start -1)
 int w_end(Window* this){
-	return win_mod(this->start -1);
+	return w_mod(this->start -1);
 }
 
 packet w_back(Window* this){
@@ -27,36 +28,44 @@ void w_init(Window* this, int seq){
 	this->start = 0;
 	int i = 0;
 	do {
-		this->arr[win_mod(this->start +i)].type = ok;
-		this->arr[win_mod(this->start +i)].data_p = NULL;
-		this->arr[win_mod(this->start +i)].seq = win_mod(seq + i);
-		this->arr[win_mod(this->start +i)].error = true;
+		this->arr[w_mod(this->start +i)].type = ok;
+		this->arr[w_mod(this->start +i)].data_p = NULL;
+		this->arr[w_mod(this->start +i)].seq = w_mod(seq + i);
+		this->arr[w_mod(this->start +i)].error = true;
 		
 		i += 1;
-	} while(win_mod(this->start +i) != win_mod(w_end(this) +1));
+	} while(w_mod(this->start +i) != w_mod(w_end(this) +1));
 }
 
-packet front(Window* this){
+packet w_front(Window* this){
 	return this->arr[this->start];
 }
 
 int i_to_seq(Window* this, int i){
-	return seq_mod(front(this).seq + i - this->start);
+	int ret = seq_mod(w_front(this).seq + i - this->start);
+	return seq_mod(w_front(this).seq + w_mod(i - this->start));
 }
 
 packet last_ok(Window* this){
-	return this->arr[this->acc];
+	packet ret = this->arr[w_mod(this->acc)];
+	ret = this->arr[this->acc];
+	if(ret.error || w_front(this).error){
+		ret.seq = seq_mod(w_front(this).seq -1);
+	}
+	return ret;
 }
 
 packet first_err(Window* this){
-	return this->arr[win_mod(this->acc +1)];
+	packet ret = this->arr[w_mod(this->acc +1)];
+	return this->arr[w_mod(this->acc +1)];
 }
 
 int indexes_remain(Window* this){
-	if(this->acc == -1){
-		return 3;
+	int ret = seq_mod(w_back(this).seq - last_ok(this).seq);
+	if(ret == 0 && last_ok(this).error){
+		ret = 3;
 	}
-	return win_mod(w_end(this) - this->acc);
+	return ret;
 }
 
 //int pop(Window* this){
@@ -90,13 +99,17 @@ typedef struct {
 } Slider;
 
 void print_slider(Slider* this){
-	printf("indexes remain = %d\n", indexes_remain(&this->window));
-	
-	for(int i = 0; i < window_size; i++){
-		printf(" %x", i % 0xf);
-	}
-	
+	printf("indexes remain = %d; \tstart=%x; \tacc=%x; \n", indexes_remain(&this->window), this->window.start, this->window.acc);
 	int it;
+	
+	it = this->window.start;
+	do{
+		printf(" %x", it);
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
 	it = this->window.start;
 	do{
 		if(this->window.arr[it].error){
@@ -105,8 +118,17 @@ void print_slider(Slider* this){
 			printf(" %x", this->window.arr[it].seq % 0xf);
 		}
 		
-		it = win_mod(it+1);
-	} while(it != win_mod(w_end(&this->window) +1));
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		printf(" %x", this->window.arr[it].type % 0xf);
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
 	
 	it = this->window.start;
 	do{
@@ -116,14 +138,18 @@ void print_slider(Slider* this){
 			printf("  ");
 		}
 		
-		it = win_mod(it+1);
-	} while(it != win_mod(w_end(&this->window) +1));
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
 }
 
 int seq_to_i(Window* this, int seq){
+	// 0 1 2 3 4
+	//   a s
+	// 3 4 2
 	// if I want index of packet.seq 5, given: start is 0;[0].seq == 3
 	// 3 4 5 6 7	5-3 = 2		0 + 2 = 2
-	return this->start + (seq - this->arr[this->start].seq);
+	return w_mod(this->start + (seq - this->arr[this->start].seq));
 }
 
 packet* at_seq(Window* this, int seq){
@@ -211,7 +237,7 @@ void send_nack(Slider* this, uint8_t seq){
 //		push_back(this->queue, msg);
 //	}
 //	
-//	msg = front(this);
+//	msg = w_front(this);
 //	pop(this);
 //	update_queue(this);
 //	
@@ -221,45 +247,67 @@ void send_nack(Slider* this, uint8_t seq){
 
 int handle_msg(Slider* this, packet msg){
 	int new_msg = FAIL;
-	if( !msg.error && ((msg.seq - last_ok(&this->window).seq) > 0) ){
+	int okseq = last_ok(&this->window).seq;
+	int ahead = seq_mod(msg.seq - okseq);
+	
+	if( !msg.error && (ahead > 0) ){
 		int msg_pos = seq_to_i(&this->window, msg.seq);
 		// if hadn't received this msg yet
 		if(this->window.arr[msg_pos].error){
 			new_msg = true;
 			this->window.arr[msg_pos] = msg;
 			// update which is the last message received without errors in the sequence
-			while( (indexes_remain(&this->window) > 0) && (!this->window.arr[win_mod(this->window.acc + 1)].error) ){
+			while( (indexes_remain(&this->window) > 0) && !(this->window.arr[w_mod(this->window.acc + 1)].error) ){
 			// [0 _ 2 3 4], acc == 0, receive 1
 			// [0 1 2 3 4], acc == 4 == w_end
-				this->window.acc = win_mod(this->window.acc +1);
+				this->window.acc = w_mod(this->window.acc +1);
 			}
-		} else {
-			free(msg.data_p);
+			
+			return true;
 		}
 	}
 	
-	return new_msg;
+	free(msg.data_p);
+	msg.data_p = NULL;
+	
+	return false;
 }
 
 void respond(Slider* this){
-	if(i_to_seq(&this->window, w_end(&this->window)) == last_ok(&this->window).seq){
+	// DEBUG
+	printf("response ");
+	int one = i_to_seq(&this->window, w_end(&this->window));
+	int two = w_back(&this->window).seq;
+	int last_seq = last_ok(&this->window).seq;
+	if(w_back(&this->window).seq == last_ok(&this->window).seq){
+		printf("ack %x\n", last_ok(&this->window).seq);
 		send_ack(this, last_ok(&this->window).seq);
 	} else {
+		printf("nack %x\n", first_err(&this->window).seq);
 		send_nack(this, first_err(&this->window).seq);
 	}
-	// 3 4 5	front is [0]=3, acc is [2]=5
-	// 6 7 8	[0]=5+1 [1]=5+2 [2]=5+3
-	int i = 1;
-	for(int it = win_mod(w_end(&this->window) +1); it != win_mod(this->window.acc +1);){
-		free(this->window.arr[it].data_p);
-		this->window.arr[it].error = true;
-		this->window.arr[it].seq = w_back(&this->window).seq + i;
-		// last it of loop will be w_end
-		
-		i += 1;
-		it = win_mod(it+1);
+	// 3 4 5 6	front is [0]=3, acc is [2]=5
+	// 7 8 9 6	[0]=5+1 [1]=5+2 [2]=5+3
+	// move window only if the first has been ack
+	if(!last_ok(&this->window).error){
+		int i = 1;
+		int it = w_mod(this->window.acc +1);
+		do{
+			this->window.arr[it].seq = seq_mod(last_ok(&this->window).seq + i);
+			// last it of loop will be w_end
+			this->window.arr[it].type = ok;
+			this->window.arr[it].error = true;
+			
+			free(this->window.arr[it].data_p);
+			this->window.arr[it].data_p = NULL;
+			
+			i += 1;
+			it = w_mod(it+1);
+		} while (it != w_mod(this->window.acc +1));
+		this->window.start = w_mod(this->window.acc +1);
 	}
-	this->window.start = win_mod(this->window.acc +1);
+	// DEBUG
+	print_slider(this);
 }
 
 int receive_data(Slider* this, FILE* stream, int data_size){
@@ -269,27 +317,30 @@ int receive_data(Slider* this, FILE* stream, int data_size){
 	
 	int buf_size;
 
-	while(rec_size != data_size){
+	while(rec_size < data_size){
 		// DEBUG
 		// buf_size = rec_packet(this->sock, &msg, this->buff);
-		// while(buf_size > 0){
-		print_slider(this);
+		buf_size = 1;
 		sleep(1);
-		while( indexes_remain(&this->window) > 0 && ( this->window.acc != w_end(&this->window) )){
+		while(buf_size > 0){
+		//while( indexes_remain(&this->window) > 0 ){
 			// block until at least 1 msg
 			// DEBUG
 			// rec_packet(this->sock, &msg, this->buf);
 			printf("Receiving Packet ");
 			printf("error = ");
-			int error;
-			if(scanf("%d", &error) < 0) fprintf(stderr, "scan error\n");
-			printf("enter seq = ");
 			int result;
+			if(scanf("%d", &result) < 0) fprintf(stderr, "scan error\n");
+			msg.error = result;
+			printf("enter seq = ");
 			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
 			msg.seq = result;
 			printf("enter size = ");
 			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
 			msg.size = result;
+			printf("enter type = ");
+			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+			msg.type = result;
 			msg.data_p = (uint8_t*)malloc(msg.size);
 			for(int i = 0; i < msg.size; i++){
 				msg.data_p[i] = i;
@@ -297,28 +348,34 @@ int receive_data(Slider* this, FILE* stream, int data_size){
 			msg.parity = parity(msg) + error;
 			print(msg);
 			
-			if(handle_msg(this, msg) == FAIL){
-				printf("no msg added\n");
-				continue;
-			}
-			
-			printf("started writing, seqs: ");
-			int i = this->window.start;
-			do {
-				printf("%hxx ", this->window.arr[i].seq % 0xf);
-				fwrite(this->window.arr[i].data_p, 1, this->window.arr[i].size, stream);
-				rec_size += this->window.arr[i].size;
-				
-				int i = win_mod(i + 1);
-			} while(i != win_mod(this->window.acc +1));
-			printf("\n");
+			handle_msg(this, msg);
+			print_slider(this);
 			
 			// DEBUG
 //			buf_size = 0;
 //			if(indexes_remain(this->window) > 0){
 //				buf_size = try_packet(this->sock, &msg, this->buf);
 //			}
+			printf("next msg buf_size = ");
+			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+			buf_size = result;
 		}
+		
+		int msgs_to_write = seq_mod( last_ok(&this->window).seq -(w_front(&this->window).seq -1) );
+		// has at least one msg to write
+		if( msgs_to_write > 0 ){
+			printf("started writing, seqs: ");
+			int it = this->window.start;
+			do {
+				printf("%hx ", this->window.arr[it].seq % 0xf);
+				fwrite(this->window.arr[it].data_p, 1, this->window.arr[it].size, stream);
+				rec_size += this->window.arr[it].size;
+				
+				it = w_mod(it + 1);
+			} while(it != w_mod(this->window.acc +1));
+			printf("\n");
+		}
+		
 		respond(this);
 	}
 	
@@ -355,6 +412,7 @@ void fill_window(Slider* this, int from, FILE* stream, int* ended){
 	do {
 		// handle old msg
 		free(this->window.arr[i].data_p);
+		this->window.arr[i].data_p = NULL;
 		if(this->window.arr[i].type == end){
 			*ended = true;
 			break;
@@ -371,8 +429,8 @@ void fill_window(Slider* this, int from, FILE* stream, int* ended){
 			break;
 		}
 		
-		i = win_mod(i+1);
-	} while (i != win_mod(w_end(&this->window) +1));
+		i = w_mod(i+1);
+	} while (i != w_mod(w_end(&this->window) +1));
 }
 
 
@@ -387,8 +445,8 @@ void send_window(Window* this){
 			// send_msg(this->sock, this->arr[it]);
 		}
 		
-		it = win_mod(it+1);
-	} while(it != win_mod(w_end(this) +1));
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(this) +1));
 }
 
 int handle_response(Window* this, packet response, int* prev_start){
@@ -411,7 +469,7 @@ int handle_response(Window* this, packet response, int* prev_start){
 			// 3 4 5 6	receives ack 5, given: start = 0; [0].seq == 3
 			// 7 8 9 6	start = 3; from 0 to <start, new packets into window
 			// 7 8 9 A	receives ack 6;	start = 0; from 0 to <0
-			this->start = win_mod(seq_to_i(this, response_seq) +1);
+			this->start = w_mod(seq_to_i(this, response_seq) +1);
 			break;
 		default:
 			fprintf(stderr, "received a response that isn't ack nor nack in data transfer\n");

@@ -20,6 +20,7 @@
 #include <stdbool.h>
 
 #define FAIL -1
+#define mod(X,Y) (((X) % (Y)) < 0 ? ((X) % (Y)) + (Y) : ((X) % (Y)))
 
 typedef enum msg_type {
 	ack = 0x0,
@@ -69,7 +70,8 @@ enum error_code {
 #define data_max (0x1 << size_b)-1 // (2^size_b)-1 maximum size of data
 
 #define seq_max (0x1 << seq_b)-1 // (2^size_b)-1 maximum size of seq
-#define seq_mod(X) (X % (seq_max+1))
+
+#define seq_mod(X) mod((X),(seq_max+1))
 
 #define BUF_MAX 4 + data_max
 
