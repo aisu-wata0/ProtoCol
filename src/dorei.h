@@ -13,7 +13,7 @@ void parse(packet msg){
 	
 }
 
-int dorei(char* device){
+int dorei(char* device){	
 	Slider slider;
 	slider_init(&slider, device);
 	
