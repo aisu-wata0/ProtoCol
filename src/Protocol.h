@@ -71,6 +71,11 @@ enum error_code {
 
 #define seq_max (0x1 << seq_b)-1 // (2^size_b)-1 maximum size of seq
 
+// if mod is 64, 00 should be after 63
+// 63 00	-63 < -32
+// 1 should be after 0
+// 00 01	1
+#define seq_after(X,Y) ((((X)-(Y)) < -(seq_max+1)/2) || (((X)-(Y)) > 0))
 #define seq_mod(X) mod((X),(seq_max+1))
 
 #define BUF_MAX 4 + data_max
@@ -174,7 +179,7 @@ void print(packet msg){
 	for(int i=0; i < msg.size; i++){
 		printf("%hhx ", msg.data_p[i]);
 	}
-	printf("parity=%hhx ", parity(msg));
+	printf("parity=%hhx; \terror=%x", parity(msg), msg.error);
 	printf("\n");
 }
 

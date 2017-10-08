@@ -5,7 +5,7 @@
 #include "Protocol.h"
 
 #define window_size 3
-#define w_mod(X) mod((X),(window_size)) 
+#define w_mod(X) mod((X),(window_size))
 
 typedef struct {
 	packet arr[window_size];
@@ -28,7 +28,7 @@ void w_init(Window* this, int seq){
 	this->start = 0;
 	int i = 0;
 	do {
-		this->arr[w_mod(this->start +i)].type = ok;
+		this->arr[w_mod(this->start +i)].type = error;
 		this->arr[w_mod(this->start +i)].data_p = NULL;
 		this->arr[w_mod(this->start +i)].seq = w_mod(seq + i);
 		this->arr[w_mod(this->start +i)].error = true;
@@ -62,32 +62,8 @@ packet first_err(Window* this){
 
 int indexes_remain(Window* this){
 	int ret = seq_mod(w_back(this).seq - last_ok(this).seq);
-	if(ret == 0 && last_ok(this).error){
-		ret = 3;
-	}
 	return ret;
 }
-
-//int pop(Window* this){
-//	if(this->size > 0){
-//		this->start = (this->start + 1) % window_size;
-//		this->size -= 1;
-//		return this->size;
-//	} else {
-//		return FAIL;
-//	}
-//}
-//
-//int push_back(Window* this, packet msg){
-//	if(size != window_size){
-//		this->arr[this->end] = msg;
-//		this->end = (this->end + 1) % window_size;
-//		this->size += 1;
-//		return this->size;
-//	} else {
-//		return FAIL;
-//	}
-//}
 
 typedef struct {
 	int sock;
@@ -244,17 +220,20 @@ void send_nack(Slider* this, uint8_t seq){
 //	return msg;
 //}
 
-
+/**
+ * @brief if proper, adds message to window and increments window.acc
+ * @param msg 
+ * @return true if a message was added to the window
+ */
 int handle_msg(Slider* this, packet msg){
-	int new_msg = FAIL;
-	int okseq = last_ok(&this->window).seq;
-	int ahead = seq_mod(msg.seq - okseq);
-	
-	if( !msg.error && (ahead > 0) ){
+	if(seq_after(msg.seq, w_back(&this->window).seq)){
+		fprintf(stderr, "received message ahead of the window\n");
+		msg.error = true;
+	}
+	if( !msg.error ){
 		int msg_pos = seq_to_i(&this->window, msg.seq);
 		// if hadn't received this msg yet
 		if(this->window.arr[msg_pos].error){
-			new_msg = true;
 			this->window.arr[msg_pos] = msg;
 			// update which is the last message received without errors in the sequence
 			while( (indexes_remain(&this->window) > 0) && !(this->window.arr[w_mod(this->window.acc + 1)].error) ){
@@ -295,7 +274,7 @@ void respond(Slider* this){
 		do{
 			this->window.arr[it].seq = seq_mod(last_ok(&this->window).seq + i);
 			// last it of loop will be w_end
-			this->window.arr[it].type = ok;
+			this->window.arr[it].type = error;
 			this->window.arr[it].error = true;
 			
 			free(this->window.arr[it].data_p);
@@ -395,7 +374,7 @@ packet next_packet(Slider* this, FILE* stream){
 		msg.data_p = (uint8_t*)malloc(msg.size);
 		memcpy(msg.data_p, this->buf, msg.size);
 	} else {
-		printf("msg.size = fread returned %x bytes, assumed eof", msg.size);
+		printf("msg.size = fread returned %x bytes, assumed eof\n", msg.size);
 		msg.type = end;
 		msg.data_p = NULL;
 	}
@@ -406,6 +385,7 @@ packet next_packet(Slider* this, FILE* stream){
  * @brief fill window from to w_end, from always gets filled
  */
 void fill_window(Slider* this, int from, FILE* stream, int* ended){
+	static bool eof = false;
 	// 3 4 5 6	receives nack 5, given: start = 0; [0].seq == 3
 	// 7 8 5 6	start = 2; from 0 to <start, new packets into window
 	int i = from;
@@ -418,28 +398,48 @@ void fill_window(Slider* this, int from, FILE* stream, int* ended){
 			break;
 		}
 		// queue next
-		this->window.arr[i] = next_packet(this, stream);
-		// DEBUG
-		if(this->window.arr[i].seq != i_to_seq(&this->window, i)){
-			printf("ERROR: seqs should be equal! %x != %x", this->window.arr[i].seq%0xf, i_to_seq(&this->window, i)%0xf);
+		if( ! eof){
+			this->window.arr[i] = next_packet(this, stream);
+			if(this->window.arr[i].type == end){
+				eof = true;
+			}
+		} else { // no message to fill in
+			this->window.arr[i].type = error;
 			this->window.arr[i].seq = i_to_seq(&this->window, i);
 		}
-		
-		if(this->window.arr[i].type == end){
-			break;
+		// DEBUG
+		if(this->window.arr[i].seq != i_to_seq(&this->window, i)){
+			printf("ERROR: seqs should be equal! %x != %x\n", this->window.arr[i].seq%0xf, i_to_seq(&this->window, i)%0xf);
+			this->window.arr[i].seq = i_to_seq(&this->window, i);
 		}
 		
 		i = w_mod(i+1);
 	} while (i != w_mod(w_end(&this->window) +1));
 }
 
-
-void send_window(Window* this){
-	printf("Sending window\n");
+void set_sent(Window* this){
+	printf("setting sent >\n");
 	int it = this->start;
 	do {
+		if(this->arr[it].type == error){
+			break;
+		}
 		if(this->arr[it].error){
 			this->arr[it].error = false;
+		}
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(this) +1));
+}
+
+void send_window(Window* this){
+	printf("Sending window >\n");
+	int it = this->start;
+	do {
+		if(this->arr[it].type == error){
+			break;
+		}
+		if(this->arr[it].error){
 			print(this->arr[it]);
 			// DEBUG
 			// send_msg(this->sock, this->arr[it]);
@@ -447,10 +447,11 @@ void send_window(Window* this){
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(this) +1));
+	printf("> sent\n\n");
 }
 
-int handle_response(Window* this, packet response, int* prev_start){
-	*prev_start = this->start;
+int handle_response(Window* this, packet response){
+	this->acc = this->start;
 	int response_seq = response.data_p[0];
 	
 	switch(response.type){
@@ -460,7 +461,7 @@ int handle_response(Window* this, packet response, int* prev_start){
 			// 7 8 5 6	start = 2; from 0 to <start, new packets into window
 			this->start = seq_to_i(this, response_seq);
 			// 3 4 5 6	receives nack 3; start = 0; no new packets
-			if(*prev_start == this->start){
+			if(this->acc == this->start){
 				return false;
 			}
 			break;
@@ -480,13 +481,15 @@ int handle_response(Window* this, packet response, int* prev_start){
 
 void send_data(Slider* this, FILE* stream){
 	packet response;
-	int prev_start = this->window.start;
+	w_init(&this->window, this->rseq);
+	
+	this->window.acc = this->window.start;
 	int ended = false;
 	int fill = true;
 	
 	while(!ended){
 		if(fill){
-			fill_window(this, prev_start, stream, &ended);
+			fill_window(this, this->window.acc, stream, &ended);
 		}
 		fill = true;
 		
@@ -495,31 +498,46 @@ void send_data(Slider* this, FILE* stream){
 		printf("Receive reply? ");
 		int reply;
 		if(scanf("%d", &reply) < 0) fprintf(stderr, "scan error\n");
-		if(reply > 0){
+		if(reply < 1){
+			fill = false;
 			continue;
 		}
 		// with timeout
 //		if(rec_packet(int sock, packet* msg_p, uint8_t* buf) == FAIL){
 //			continue;
 //		}
-		printf("enter seq = ");
+
+		set_sent(&this->window);
+		
 		int result;
+		
+		printf("enter seq = ");
 		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
 		response.seq = result;
-		printf("enter size = ");
+		
+		printf("enter type = ");
 		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-		response.size = result;
-		response.data_p = (uint8_t*)malloc(response.size);
-		for(int i = 0; i < response.size; i++){
-			response.data_p[i] = i;
-		}
-		response.parity = parity(response);
+		response.type = result;
+		
+		response.size = 1;
+		response.data_p = (uint8_t*)malloc(1);
+		printf("data_p[0] = ");
+		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+		response.data_p[0] = result;
+		
+		printf("error = ");
+		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+		response.error = result;
 		print(response);
 		
-		fill = handle_response(&this->window, response, &prev_start);
+		fill = handle_response(&this->window, response);
+		print_slider(this);
 	}
 	
-	this->sseq = seq_mod(last_ok(&this->window).seq +1);
+	/*DEBUG*/
+	if(this->sseq != seq_mod(w_back(&this->window).seq +1)){
+		printf("ERROR: seqs should be equal! %x != %x\n", this->sseq%0xf, seq_mod(w_back(&this->window).seq +1)%0xf);
+	}/**/
 }
 
 #endif
