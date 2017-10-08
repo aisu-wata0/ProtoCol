@@ -21,6 +21,8 @@ int dorei(char* device){
 	
 	int bytes;
 	bytes = receive_data(&slider, stream, 9);
+	fclose(stream);
+	
 	printf("\nbytes transfered = %x\n", bytes);
 	
 	return 0;
