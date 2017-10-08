@@ -119,6 +119,60 @@ void print_slider(Slider* this){
 	printf("\n");
 }
 
+void print_window(Slider* this){
+	printf("\n");
+	printf("acc=%x; \tstart=%x; \n", this->window.acc, this->window.start);
+	int it;
+	
+	it = this->window.start;
+	do{
+		printf(" %x", it);
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		printf(" %x", this->window.arr[it].seq % 0xf);
+
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		if(this->window.arr[it].error){
+			printf(" t"); // to send
+		} else {
+			printf(" s"); // sent
+		}
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		printf(" %x", this->window.arr[it].type % 0xf);
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		if(it == this->window.acc){
+			printf(" a");
+		} else {
+			printf("  ");
+		}
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+}
+
 int seq_to_i(Window* this, int seq){
 	// 0 1 2 3 4
 	//   a s
@@ -484,14 +538,13 @@ void send_data(Slider* this, FILE* stream){
 	w_init(&this->window, this->rseq);
 	
 	this->window.acc = this->window.start;
-	int ended = false;
-	int fill = true;
+	
+	bool fill;
+	bool ended = false;
+	fill_window(this, this->window.acc, stream, &ended);
 	
 	while(!ended){
-		if(fill){
-			fill_window(this, this->window.acc, stream, &ended);
-		}
-		fill = true;
+		print_window(this);
 		
 		send_window(&this->window);
 		
@@ -499,7 +552,6 @@ void send_data(Slider* this, FILE* stream){
 		int reply;
 		if(scanf("%d", &reply) < 0) fprintf(stderr, "scan error\n");
 		if(reply < 1){
-			fill = false;
 			continue;
 		}
 		// with timeout
@@ -531,7 +583,10 @@ void send_data(Slider* this, FILE* stream){
 		print(response);
 		
 		fill = handle_response(&this->window, response);
-		print_slider(this);
+		
+		if(fill){
+			fill_window(this, this->window.acc, stream, &ended);
+		}
 	}
 	
 	/*DEBUG*/
