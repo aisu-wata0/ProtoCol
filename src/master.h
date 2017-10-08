@@ -22,6 +22,7 @@
 
 #include "Protocol.h"
 #include "Socket.h"
+#include "SlidingWindow.h"
 
 int master(char* device){
 	packet msg;
@@ -29,9 +30,9 @@ int master(char* device){
 	Slider slider;
 	slider_init(&slider, device);
 	
-	FILE* stream = fopen("out.txt","rb");
+	FILE* stream = fopen("IO/in.txt","rb");
 	
-	printf("\nbytes transfered = %x\n", send_data(&slider, stream));
+	send_data(&slider, stream);
 	
 	return 0;
 }

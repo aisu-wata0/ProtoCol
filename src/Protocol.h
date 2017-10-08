@@ -67,6 +67,10 @@ enum error_code {
 #define parity_b 8
 
 #define data_max (0x1 << size_b)-1 // (2^size_b)-1 maximum size of data
+
+#define seq_max (0x1 << seq_b)-1 // (2^size_b)-1 maximum size of seq
+#define seq_mod(X) (X % (seq_max+1))
+
 #define BUF_MAX 4 + data_max
 
 typedef struct {
