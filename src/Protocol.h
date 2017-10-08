@@ -3,10 +3,8 @@
 
 #include <sys/types.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <unistd.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <memory.h>
@@ -15,13 +13,11 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/ethernet.h>
 #include <linux/if_packet.h>
 #include <linux/if.h>
+#include <stdbool.h>
 
 #define FAIL -1
 
@@ -158,12 +154,6 @@ int serialize(packet msg, uint8_t** buf_p){
 	return buf_n;
 }
 
-void send_nack(int sock, packet msg){
-	packet response;
-	response.size = 0;
-	response.type = nack;
-}
-
 void send_msg(int sock, packet msg){
 	uint8_t* buf;
 	int buf_n;
@@ -269,7 +259,7 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 
 	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
 
-	return msg_start;
+	return buf_n;
 }
 
 /**
