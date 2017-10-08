@@ -18,9 +18,10 @@ int dorei(char* device){
 	slider_init(&slider, device);
 	
 	FILE* stream = fopen("IO/out.txt","wb");
-	
+
 	int bytes;
-	bytes = receive_data(&slider, stream, 9);
+	int file_size_B = 9;
+	bytes = receive_data(&slider, stream, file_size_B);
 	fclose(stream);
 	
 	printf("\nbytes transfered = %x\n", bytes);
