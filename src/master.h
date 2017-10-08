@@ -25,8 +25,6 @@
 #include "SlidingWindow.h"
 
 int master(char* device){
-	packet msg;
-	
 	Slider slider;
 	slider_init(&slider, device);
 	

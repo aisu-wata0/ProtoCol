@@ -1,6 +1,8 @@
 #ifndef SLIDINGWINDOW_H
 #define SLIDINGWINDOW_H
 
+#include <math.h>
+
 #define window_size 3
 #define win_mod(X) (X % window_size)
 
@@ -51,6 +53,9 @@ packet first_err(Window* this){
 }
 
 int indexes_remain(Window* this){
+	if(this->acc == -1){
+		return 3;
+	}
 	return win_mod(w_end(this) - this->acc);
 }
 
@@ -85,6 +90,8 @@ typedef struct {
 } Slider;
 
 void print_slider(Slider* this){
+	printf("indexes remain = %d\n", indexes_remain(&this->window));
+	
 	for(int i = 0; i < window_size; i++){
 		printf(" %x", i % 0xf);
 	}
@@ -263,19 +270,26 @@ int receive_data(Slider* this, FILE* stream, int data_size){
 	int buf_size;
 
 	while(rec_size != data_size){
+		// DEBUG
 		// buf_size = rec_packet(this->sock, &msg, this->buff);
 		// while(buf_size > 0){
+		print_slider(this);
+		sleep(1);
 		while( indexes_remain(&this->window) > 0 && ( this->window.acc != w_end(&this->window) )){
 			// block until at least 1 msg
+			// DEBUG
 			// rec_packet(this->sock, &msg, this->buf);
 			printf("Receiving Packet ");
 			printf("error = ");
 			int error;
-			scanf("%d", error);
+			if(scanf("%d", &error) < 0) fprintf(stderr, "scan error\n");
 			printf("enter seq = ");
-			scanf("%d", msg.seq);
+			int result;
+			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+			msg.seq = result;
 			printf("enter size = ");
-			scanf("%d", msg.size);
+			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+			msg.size = result;
 			msg.data_p = (uint8_t*)malloc(msg.size);
 			for(int i = 0; i < msg.size; i++){
 				msg.data_p[i] = i;
@@ -299,6 +313,7 @@ int receive_data(Slider* this, FILE* stream, int data_size){
 			} while(i != win_mod(this->window.acc +1));
 			printf("\n");
 			
+			// DEBUG
 //			buf_size = 0;
 //			if(indexes_remain(this->window) > 0){
 //				buf_size = try_packet(this->sock, &msg, this->buf);
@@ -368,6 +383,7 @@ void send_window(Window* this){
 		if(this->arr[it].error){
 			this->arr[it].error = false;
 			print(this->arr[it]);
+			// DEBUG
 			// send_msg(this->sock, this->arr[it]);
 		}
 		
@@ -406,7 +422,6 @@ int handle_response(Window* this, packet response, int* prev_start){
 
 void send_data(Slider* this, FILE* stream){
 	packet response;
-	int result;
 	int prev_start = this->window.start;
 	int ended = false;
 	int fill = true;
@@ -421,7 +436,7 @@ void send_data(Slider* this, FILE* stream){
 		
 		printf("Receive reply? ");
 		int reply;
-		scanf("%d", reply);
+		if(scanf("%d", &reply) < 0) fprintf(stderr, "scan error\n");
 		if(reply > 0){
 			continue;
 		}
@@ -430,9 +445,12 @@ void send_data(Slider* this, FILE* stream){
 //			continue;
 //		}
 		printf("enter seq = ");
-		scanf("%x", response.seq);
+		int result;
+		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+		response.seq = result;
 		printf("enter size = ");
-		scanf("%x", response.size);
+		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+		response.size = result;
 		response.data_p = (uint8_t*)malloc(response.size);
 		for(int i = 0; i < response.size; i++){
 			response.data_p[i] = i;

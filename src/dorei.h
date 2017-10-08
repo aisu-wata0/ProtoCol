@@ -14,14 +14,14 @@ void parse(packet msg){
 }
 
 int dorei(char* device){
-	packet msg;
-	
 	Slider slider;
 	slider_init(&slider, device);
 	
 	FILE* stream = fopen("IO/out.txt","wb");
 	
-	printf("\nbytes transfered = %x\n", receive_data(&slider, stream, 9));
+	int bytes;
+	bytes = receive_data(&slider, stream, 9);
+	printf("\nbytes transfered = %x\n", bytes);
 	
 	return 0;
 }

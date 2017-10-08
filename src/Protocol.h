@@ -163,8 +163,8 @@ void send_msg(int sock, packet msg){
 	int buf_n;
 	
 	buf_n = serialize(msg, &buf);
-
-	send(sock, buf, buf_n, 0);
+	// DEBUG
+	//send(sock, buf, buf_n, 0);
 }
 
 void print(packet msg){
@@ -252,6 +252,7 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf){
 	while(msg_start != 0){
 		memset(buf, 0, BUF_MAX);
 		while(buf_n < 1){
+			// DEBUG
 			buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
 		} // receive a network packet and copy in to buffer
 		
