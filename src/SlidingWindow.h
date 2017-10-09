@@ -554,9 +554,11 @@ void send_data(Slider* this, FILE* stream){
 		if(reply < 1){
 			continue;
 		}
+		
 		// with timeout
-//		if(rec_packet(int sock, packet* msg_p, uint8_t* buf) == FAIL){
-//			continue;
+//		int buf_n = rec_packet(int sock, packet* msg_p, uint8_t* buf, 1);
+//		if(buf_n < 1){
+//			continue; // no response, send window again
 //		}
 
 		set_sent(&this->window);

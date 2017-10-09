@@ -249,22 +249,32 @@ int frame_msg(uint8_t* buf, int buf_n){
  * @param buf previously allocated buffer
  * @return 
  */
-int rec_packet(int sock, packet* msg_p, uint8_t* buf){
+int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec = 0){
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
 
 	int buf_n = 0;
-	int msg_start = -1;
+	int ended = false;
 	
-	while(msg_start != 0){
+	while(!ended){
 		memset(buf, 0, BUF_MAX);
-		while(buf_n < 1){
-			// DEBUG
-			buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
-		} // receive a network packet and copy in to buffer
 		
-		if(buf[0] == framing_bits){
-			msg_start = 0;
+		struct timeval tv;
+		if(timeout_sec > 0){
+			tv.tv_sec =	timeout_sec;
+			setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+		}
+		
+		buf_n = recvfrom(sock, buf, BUF_MAX, flags, &saddr, (socklen_t *)&saddr_len);
+		// receive a network packet and copy in to buffer
+		
+		if(timeout_sec > 0){
+			tv.tv_sec = 0; tv.tv_usec = 0;
+			setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+		}
+		
+		if((buf_n < 1) || (buf[0] == framing_bits)){
+			ended = true;
 		}
 		//msg_start = frame_msg(buf, buf_n);
 	}
