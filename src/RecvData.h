@@ -70,6 +70,7 @@ int handle_msg(Slider* this, packet msg){
 			// [0 1 2 3 4], acc == 4 == w_end
 				this->window.acc = w_mod(this->window.acc +1);
 			}
+			printf("added msg to window, new acc=%d\n", this->window.acc);
 			
 			return true;
 		}
@@ -89,7 +90,7 @@ void write_to_file(Slider* this, FILE* stream, uint64_t* rec_size, bool* ended){
 	int msgs_to_write = seq_mod( last_acc(&this->window).seq +1 - w_front(&this->window).seq );
 	// has at least one msg to write
 	if( msgs_to_write > 0 ){
-		printf("started writing, seqs: ");
+		printf("writing seqs: [ ");
 		int it = this->window.start;
 		do {
 			if(this->window.arr[it].type == end){
@@ -103,12 +104,12 @@ void write_to_file(Slider* this, FILE* stream, uint64_t* rec_size, bool* ended){
 			
 			it = w_mod(it + 1);
 		} while(it != w_mod(this->window.acc +1));
-		printf("\n");
+		printf("]\n");
 	}
 }
 
 void respond(Slider* this){
-	// DEBUG
+	// LOG
 	printf("response ");
 	if((w_back(&this->window).seq == last_acc(&this->window).seq) || (last_acc(&this->window).type == end)){
 		printf("ack %x\n", last_acc(&this->window).seq);
@@ -152,6 +153,7 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 	
 	
 	msg.type = ok;
+	msg.size = 0;
 	
 	printf("> sending ok\n");
 	
@@ -169,44 +171,50 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 	print_slider(this);
 	
 	while(!ended){
-		// DEBUG
-		if(msg.type == invalid)
+		/*DEBUG*/ 
+		if(msg.type == invalid){
 			buf_size = rec_packet(this->sock, &msg, this->buf, 0);
-		//buf_size = 1;
+		}
+		/**
+		buf_size = 1;
+		/**/
 		while(buf_size > 0){
-//			printf("Receiving Packet ");
-//			printf("error = ");
-//			int result;
-//			if(scanf("%d", &result) < 0) fprintf(stderr, "scan error\n");
-//			msg.error = result;
-//			printf("enter seq = ");
-//			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-//			msg.seq = result;
-//			printf("enter size = ");
-//			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-//			msg.size = result;
-//			printf("enter type = ");
-//			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-//			msg.type = result;
-//			msg.data_p = (uint8_t*)malloc(msg.size);
-//			for(int i = 0; i < msg.size; i++){
-//				msg.data_p[i] = i;
-//			}
+			/*DEBUG*
+			printf("Receiving Packet ");
+			printf("error = ");
+			int result;
+			if(scanf("%d", &result) < 0) fprintf(stderr, "scan err\n");
+			msg.error = result;
+			printf("enter seq = ");
+			if(scanf("%x", &result) < 0) fprintf(stderr, "scan err\n");
+			msg.seq = result;
+			printf("enter size = ");
+			if(scanf("%x", &result) < 0) fprintf(stderr, "scan err\n");
+			msg.size = result;
+			printf("enter type = ");
+			if(scanf("%x", &result) < 0) fprintf(stderr, "scan err\n");
+			msg.type = result;
+			msg.data_p = (uint8_t*)malloc(msg.size);
+			for(int i = 0; i < msg.size; i++){
+				msg.data_p[i] = i;
+			}
+			/**/
 			print(msg);
-			
 			handle_msg(this, msg);
 			msg.type = invalid;
 			
 			print_slider(this);
 			
-			// DEBUG
+			/*DEBUG*/ 
 			buf_size = 0;
 			if(indexes_remain(&this->window) > 0){
 				buf_size = try_packet(this->sock, &msg, this->buf);
 			}
-//			printf("next msg buf_size = ");
-//			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-//			buf_size = result;
+			/**
+			printf("next msg buf_size = ");
+			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+			buf_size = result;
+			/**/
 		}
 		
 		write_to_file(this, stream, &rec_size, &ended);
