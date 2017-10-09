@@ -29,7 +29,13 @@ int dorei(char* device){
 	printf("> sending msg\n");
 	print(msg);
 	packet response;
+	/*DEBUG*
 	response = sl_send(&slider, msg);
+	/**/
+	read_msg(&response);
+	slider.rseq = seq_mod(slider.rseq +1);
+	/**/
+	
 	printf("< response:\n");
 	print(response);
 	
