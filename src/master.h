@@ -38,6 +38,9 @@ int master(char* device){
 		printf("get \"%s\"", msg.data_p);
 		
 		FILE* stream = fopen((char*)msg.data_p,"rb");
+		if(stream == NULL){
+			// TODO send error
+		}
 		
 		struct stat sb;
 		if (stat((char*)msg.data_p, &sb) == -1) {
