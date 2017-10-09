@@ -49,7 +49,11 @@ int master(char* device){
 		
 		printf("file size = %lu bytes\n", *(uint64_t*)msg.data_p);
 		
+		printf("> sending\n");
+		print(msg);
 		packet response = sl_send(&slider, msg);
+		printf("< response\n");
+		print(response);
 		
 		if(response.type == ok){
 			send_data(&slider, stream);
