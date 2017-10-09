@@ -22,10 +22,11 @@ void print_slider(Slider* this){
 	it = this->window.start;
 	do{
 		if(this->window.arr[it].error){
-			printf("  ");
+			printf("-");
 		} else {
-			printf(" %x", this->window.arr[it].seq % 0xf);
+			printf("+");
 		}
+		printf("%x", this->window.arr[it].seq % 0xf);
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
@@ -64,6 +65,9 @@ int handle_msg(Slider* this, packet msg){
 		msg.error = true;
 	}
 	if( !msg.error ){
+		if( ! (msg.type == data || msg.type == end)){
+			fprintf(stderr, "received a message of wrong type (%x) on data transfer\n", msg.type);
+		}
 		int msg_pos = seq_to_i(&this->window, msg.seq);
 		// if hadn't received this msg yet
 		if(this->window.arr[msg_pos].error){
@@ -102,7 +106,7 @@ void write_to_file(Slider* this, FILE* stream, uint64_t* rec_size, bool* ended){
 				break;
 			}
 			printf("%hx ", this->window.arr[it].seq % 0xf);
-			//writing data to file
+			// writing data to file
 			fwrite(this->window.arr[it].data_p, 1, this->window.arr[it].size, stream);
 			*rec_size += this->window.arr[it].size;
 			
@@ -127,18 +131,27 @@ void respond(Slider* this){
 void move_window(Slider* this){
 	// 3 4 5 6	front is [0]=3, acc is [2]=5
 	// 7 8 9 6	[0]=5+1 [1]=5+2 [2]=5+3
+	//       s
+	// 3 4 5 6	front is [0]=3, acc is [2]=5
+	// d b a(d
+	// 0 1 2 0
+	// b)b a b
 	// move window only if the first has been ack
 	if(!last_acc(&this->window).error){
 		int i = 1;
-		int it = w_mod(this->window.acc +1);
+		int it = this->window.start;
 		do{
-			this->window.arr[it].seq = seq_mod(last_acc(&this->window).seq + i);
-			// last it of loop will be w_end
-			this->window.arr[it].type = invalid;
-			this->window.arr[it].error = true;
-			
-			free(this->window.arr[it].data_p);
-			this->window.arr[it].data_p = NULL;
+			if( seq_after(this->window.arr[it].seq, last_acc(&this->window).seq) || (this->window.arr[it].seq == last_acc(&this->window).seq) ){
+				this->window.arr[it].seq = seq_mod(w_back(&this->window).seq + i);
+				// last it of loop will be w_end
+				this->window.arr[it].type = invalid;
+				this->window.arr[it].error = true;
+				
+				free(this->window.arr[it].data_p);
+				this->window.arr[it].data_p = NULL;
+			} else {
+				fprintf(stderr, "tried to nul a msg with seq before last_acc\n");
+			}
 			
 			i += 1;
 			it = w_mod(it+1);
