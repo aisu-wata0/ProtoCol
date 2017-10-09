@@ -177,6 +177,7 @@ int receive_data(Slider* this, FILE* stream, int data_size){
 					break;
 				}
 				printf("%hx ", this->window.arr[it].seq % 0xf);
+				//writing data to file
 				fwrite(this->window.arr[it].data_p, 1, this->window.arr[it].size, stream);
 				rec_size += this->window.arr[it].size;
 				
