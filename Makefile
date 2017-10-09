@@ -31,7 +31,7 @@ doc:
 set_debug:
 	$(eval FLAGS = -O0 -g $(WARN))
 
-debug: set_debug all
+debug: set_debug clean all
 
 rebuild: clean all
 

@@ -104,7 +104,7 @@ uint8_t parity(packet msg){
 }
 
 bool has_error(packet msg){
-	return (parity(msg) == msg.parity);
+	return (parity(msg) != msg.parity);
 }
 
 /**
@@ -121,7 +121,7 @@ packet deserialize(uint8_t* buf, int buf_n){
 	msg.type = (buf[1] & 0b00011111);
 	
 	if(buf_n < 2+msg.size){
-		// fprintf(stderr, "received message buffer too small for said message size");
+		fprintf(stderr, "received message buffer too small for said message size");
 		msg.error = true;
 	}
 	
@@ -131,7 +131,11 @@ packet deserialize(uint8_t* buf, int buf_n){
 	
 	if(msg.size > 0){
 		msg.parity = buf[2+msg.size];
+		printf("msg.parity %x calc parity %x\n", msg.parity, parity(msg));
 		msg.error = has_error(msg);
+		if(msg.error){
+			printf("deserialized message has detected error %x\n", has_error(msg));
+		}
 	}
 	
 	return msg;
