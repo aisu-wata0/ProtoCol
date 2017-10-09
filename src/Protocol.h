@@ -174,8 +174,8 @@ int send_msg(int sock, packet msg){
 	int buf_n;
 	
 	// DEBUG
-	return buf_n = serialize(msg, &buf);
-	//return send(sock, buf, buf_n, 0);
+	buf_n = serialize(msg, &buf);
+	return send(sock, buf, buf_n, 0);
 }
 
 void print(packet msg){
@@ -267,7 +267,7 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 		
 		struct timeval tv;
 		if(timeout_sec > 0){
-			tv.tv_sec =	timeout_sec;
+			tv.tv_sec = timeout_sec; tv.tv_usec = 0;
 			if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval)) < 0)
 				fprintf(stderr, "setsockopt failed\n");
 		}
