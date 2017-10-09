@@ -18,6 +18,7 @@
 #include <linux/if_packet.h>
 #include <linux/if.h>
 #include <stdbool.h>
+#include <math.h>
 
 #define FAIL -1
 #define mod(X,Y) (((X) % (Y)) < 0 ? ((X) % (Y)) + (Y) : ((X) % (Y)))
