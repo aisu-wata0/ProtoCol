@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <math.h>
 
 #include "Protocol.h"
 #include "Socket.h"
@@ -29,23 +30,31 @@ int master(char* device){
 	Slider slider;
 	slider_init(&slider, device);
 	
-	char* filename = "../bfs15-lgjr15.tar.gz";
+	packet msg = sl_recv(&slider);
 	
-	FILE* stream = fopen(filename,"rb");
+	print(msg);
 	
-	struct stat sb;
-	if (stat(filename, &sb) == -1) {
-		fprintf(stderr, "file byte count with stat() error");
+	if(msg.type == get){
+		printf("get \"%s\"", msg.data_p);
+		
+		FILE* stream = fopen((char*)msg.data_p,"rb");
+		
+		struct stat sb;
+		if (stat((char*)msg.data_p, &sb) == -1) {
+			fprintf(stderr, "file byte count with stat() error");
+		}
+		
+		msg.type = tam;
+		set_data(&msg, sb.st_size);
+		
+		printf("file size = %lu bytes\n", *(uint64_t*)msg.data_p);
+		
+		packet response = sl_send(&slider, msg);
+		
+		if(response.type == ok){
+			send_data(&slider, stream);
+		}
 	}
-	
-	packet msg;
-	set_data(&msg, sb.st_size);
-	
-	printf("file size = %llu bytes\n", *(uint64_t*)msg.data_p);
-	
-	// sl_send_msg(slider, msg);
-
-	send_data(&slider, stream);
 	
 	return 0;
 }

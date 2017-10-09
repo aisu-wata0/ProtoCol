@@ -10,7 +10,7 @@ OBJECTS := $(addprefix $(BUILDDIR)/, $(SRCNAMES:%.c=%.o))
 SRCS := $(addprefix $(SRCDIR)/, $(SRCNAMES))
 
 # libs to include
-LIBS =
+LIBS = -lm
 
 # warnings and flags
 WARN = -Wall

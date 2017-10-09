@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "Protocol.h"
 #include "Socket.h"
@@ -18,15 +19,19 @@ int dorei(char* device){
 	slider_init(&slider, device);
 	uint64_t rec_bytes;
 	
-	char* filename = "IO/out.txt";
+	char* filename = "IO/in.txt";
 	
 	packet msg; msg.type = get;
 	msg.size = strlen(filename);
 	msg.data_p = malloc(msg.size);
 	memcpy(msg.data_p, filename, msg.size);
 	
+	printf("> sending msg\n");
+	print(msg);
 	packet response;
 	response = sl_send(&slider, msg);
+	printf("< response:\n");
+	print(response);
 	
 	if(response.type == tam){
 		FILE* stream = fopen("IO/out.txt","wb");
@@ -40,10 +45,10 @@ int dorei(char* device){
 	} else {
 		// if error, print on screen appropriately
 		// DEBUG
-		fprintf(stderr, "response is not expected TAM");
+		fprintf(stderr, "response is not expected TAM\n");
 	}
 	
-	printf("\nbytes transfered = %x\n", rec_bytes);
+	printf("\nbytes transfered = %lu\n", rec_bytes);
 	
 	return 0;
 }
