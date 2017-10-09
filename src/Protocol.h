@@ -358,4 +358,32 @@ void endian_test(){
 	}
 }
 
+void read_msg(packet* msg){
+	printf("Receiving Packet ");
+	int result;
+	
+	printf("error = ");
+	if(scanf("%d", &result) < 0) fprintf(stderr, "scan err\n");
+	msg->error = result;
+	
+	printf("enter seq = ");
+	if(scanf("%x", &result) < 0) fprintf(stderr, "scan err\n");
+	msg->seq = result;
+	
+	printf("enter size = ");
+	if(scanf("%x", &result) < 0) fprintf(stderr, "scan err\n");
+	msg->size = result;
+	
+	printf("enter type = ");
+	if(scanf("%x", &result) < 0) fprintf(stderr, "scan err\n");
+	msg->type = result;
+	
+	msg->data_p = (uint8_t*)malloc(msg->size);
+	printf("enter data = ");
+	for(int i = 0; i < msg->size; i++){
+		if(scanf("%x", &result) < 0) fprintf(stderr, "scan err\n");
+		msg->data_p[i] = result;
+	}
+}
+
 #endif
