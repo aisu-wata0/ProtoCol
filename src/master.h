@@ -19,6 +19,7 @@
 #include <linux/if.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "Protocol.h"
 #include "Socket.h"
@@ -28,8 +29,25 @@ int master(char* device){
 	Slider slider;
 	slider_init(&slider, device);
 	
-	FILE* stream = fopen("IO/in.txt","rb");
+	char* filename = "IO/in.txt";
 	
+	FILE* stream = fopen(filename,"rb");
+	
+	struct stat sb;
+	if (stat(filename, &sb) == -1) {
+		fprintf(stderr, "file byte count with stat() error");
+	}
+	
+	packet msg;
+	msg.type = tam;
+	msg.size = byte_len((uint64_t)sb.st_size);
+	msg.data_p = malloc(msg.size);
+	*(uint64_t*)msg.data_p = sb.st_size;
+	
+	printf("file size = %llu bytes\n", *(uint64_t*)msg.data_p);
+	
+	// sl_send_msg(slider, msg);
+
 	send_data(&slider, stream);
 	
 	return 0;
