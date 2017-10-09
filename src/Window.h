@@ -157,12 +157,16 @@ packet sl_send(Slider* this, packet msg){
 	msg.seq = this->sseq;
 	this->sseq = seq_mod(this->sseq +1);
 	
+	printf("sending\n ");
+	print(msg);
 	while( ! responded){
+		printf("again ");
 		send_msg(this->sock, msg);
 		
 		// with timeout
 		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
 		if(buf_n < 1){
+			printf("timeout. \t");
 			continue; // no response, send again
 		}
 		if(response.seq != this->rseq){

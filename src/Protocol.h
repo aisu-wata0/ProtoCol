@@ -121,7 +121,7 @@ packet deserialize(uint8_t* buf, int buf_n){
 	msg.type = (buf[1] & 0b00011111);
 	
 	if(buf_n < 2+msg.size){
-		fprintf(stderr, "received message buffer too small for said message size");
+		fprintf(stderr, "received message buffer too small for said message size\n");
 		msg.error = true;
 	}
 	
@@ -276,22 +276,32 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 				fprintf(stderr, "setsockopt failed\n");
 		}
 		
+		printf("recv...\t", buf_n);
+		fflush(stdout);
 		buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
 		// receive a network packet and copy in to buffer
 		
 		if(timeout_sec > 0){
 			tv.tv_sec = 0; tv.tv_usec = 0;
 			if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(struct timeval)) < 0)
-				fprintf(stderr, "setsockopt failed\n");
+				fprintf(stderr, "setsockopt failed");
 		}
-		// timed out || received valid packet
-		if((buf_n < 1) || (buf[0] == framing_bits)){
+		
+		// timed out
+		if(buf_n < 1){
+			return buf_n;
+		}
+		// received valid packet
+		if(buf[0] == framing_bits){
 			msg_start = 0; // starts at [0]
+			//msg_start = frame_msg(buf, buf_n);
 			ended = true;
 		}
-		//msg_start = frame_msg(buf, buf_n);
+		
+		fflush(stdout);
 	}
-
+	printf("\n");
+	
 	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
 
 	return buf_n;
