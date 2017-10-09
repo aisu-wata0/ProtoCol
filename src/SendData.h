@@ -170,6 +170,7 @@ int handle_response(Window* this, packet response){
 			break;
 		default:
 			fprintf(stderr, "received a response that isn't ack nor nack in data transfer\n");
+			return false;
 	}
 	
 	return true;
@@ -227,6 +228,8 @@ void send_data(Slider* this, FILE* stream){
 		
 		printf("handling response\n");
 		print(response);
+		
+		// TODO check response.seq or use sl_recv
 		
 		fill = handle_response(&this->window, response);
 		
