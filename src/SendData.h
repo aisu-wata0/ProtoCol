@@ -194,6 +194,7 @@ void send_data(Slider* this, FILE* stream){
 		// with timeout
 		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
 		if(buf_n < 1){
+			printf("Timed out\n");
 			continue; // no response, send window again
 		}
 //		printf("Receive reply? ");
@@ -221,9 +222,11 @@ void send_data(Slider* this, FILE* stream){
 //		printf("error = ");
 //		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
 //		response.error = result;
-//		print(response);
 
 		set_sent(&this->window);
+		
+		printf("handling response\n");
+		print(response);
 		
 		fill = handle_response(&this->window, response);
 		
