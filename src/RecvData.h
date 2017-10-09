@@ -116,18 +116,26 @@ void respond(Slider* this){
 	print_slider(this);
 }
 
-int receive_data(Slider* this, FILE* stream, int data_size){
+uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 	packet msg;
 	bool ended = false;
-	int rec_size = 0;
+	uint64_t rec_size = 0;
 	w_init(&this->window, this->rseq);
 	
 	int buf_size;
+	
+	msg.type = ok;
+	msg = sl_send(this, msg);
+	buf_size = msg.size;
 
+	handle_msg(this, msg);
+	print_slider(this);
+	
 	while(!ended){
 		// DEBUG
 		buf_size = 1;
-		// buf_size = rec_packet(this->sock, &msg, this->buff, 0);
+//		if(msg.type == invalid)
+//			buf_size = rec_packet(this->sock, &msg, this->buff, 0);
 		while(buf_size > 0){
 		//while( indexes_remain(&this->window) > 0 ){
 			// block until at least 1 msg
@@ -154,6 +162,8 @@ int receive_data(Slider* this, FILE* stream, int data_size){
 			print(msg);
 			
 			handle_msg(this, msg);
+			msg.type = invalid;
+			
 			print_slider(this);
 			
 			// DEBUG
