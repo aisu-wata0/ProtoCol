@@ -19,7 +19,7 @@ int dorei(char* device){
 	slider_init(&slider, device);
 	uint64_t rec_bytes;
 	
-	char* filename = "IO/in.txt";
+	char* filename = "Protocol";
 	
 	packet msg; msg.type = get;
 	msg.size = strlen(filename);
