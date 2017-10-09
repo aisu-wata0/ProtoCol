@@ -63,7 +63,11 @@ void print_slider(Slider* this){
  */
 int handle_msg(Slider* this, packet msg){
 	if(seq_after(msg.seq, w_back(&this->window).seq)){
-		fprintf(stderr, "received message ahead of the window\n");
+		fprintf(stderr, "received msg ahead of the window\n");
+		msg.error = true;
+	}
+	if(seq_after(w_front(&this->window).seq, msg.seq)){
+		fprintf(stderr, "received msg before window\n");
 		msg.error = true;
 	}
 	
@@ -130,10 +134,10 @@ void respond(Slider* this){
 	printf("response ");
 	if((w_back(&this->window).seq == last_acc(&this->window).seq) || (last_acc(&this->window).type == end)){
 		printf("ack %x\n", last_acc(&this->window).seq);
-		send_ack(this, last_acc(&this->window).seq);
+		send_number(this, ack, last_acc(&this->window).seq);
 	} else {
 		printf("nack %x\n", first_err(&this->window).seq);
-		send_nack(this, first_err(&this->window).seq);
+		send_number(this, nack, first_err(&this->window).seq);
 	}
 }
 
@@ -146,21 +150,17 @@ void move_window(Slider* this){
 	// 0 1 2 0
 	// b)b a b
 	// move window only if the first has been ack
-	if(!last_acc(&this->window).error){
+	if(!w_front(&this->window).error){
 		int i = 1;
 		int it = this->window.start;
 		do{
-			if( seq_after(this->window.arr[it].seq, last_acc(&this->window).seq) || (this->window.arr[it].seq == last_acc(&this->window).seq) ){
-				this->window.arr[it].seq = seq_mod(w_back(&this->window).seq + i);
-				// last it of loop will be w_end
-				this->window.arr[it].type = invalid;
-				this->window.arr[it].error = true;
-				
-				free(this->window.arr[it].data_p);
-				this->window.arr[it].data_p = NULL;
-			} else {
-				fprintf(stderr, "tried to nul a msg with seq before last_acc\n");
-			}
+			this->window.arr[it].seq = seq_mod(w_back(&this->window).seq + i);
+			// last it of loop will be w_end
+			this->window.arr[it].type = invalid;
+			this->window.arr[it].error = true;
+			
+			free(this->window.arr[it].data_p);
+			this->window.arr[it].data_p = NULL;
 			
 			i += 1;
 			it = w_mod(it+1);
@@ -204,7 +204,7 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 		if(msg.type == invalid){
 			buf_size = rec_packet(this->sock, &msg, this->buf, 0);
 		}
-		/**/
+		/**
 		buf_size = 1;
 		/**/
 		while(buf_size > 0){

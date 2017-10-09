@@ -96,41 +96,24 @@ void slider_init(Slider* this, char* device){
 }
 
 /**
- * @brief sends ack "seq"
+ * @brief sends msg with num in the data_p
  * doesn't increase sseq if this is a retry (we timed out)
  */
-void send_ack(Slider* this, uint8_t seq){
+void send_number(Slider* this, msg_type_t typ, uint64_t num){
 	static packet response;
-	static int prev_seq = -1;
+	static bool first_pack = true;
+	static uint64_t prev_num;
 	
-	if(prev_seq != seq){
-		response.type = ack;
+	if(prev_num != num || response.type != typ || first_pack){
+		first_pack = false;
+		response.type = typ;
 		
 		response.seq = this->sseq;
 		this->sseq = seq_mod(this->sseq +1);
 		
-		set_data(&response, seq);
+		set_data(&response, num);
 	}
-	
-	send_msg(this->sock, response);
-}
-
-/**
- * @brief sends nack "seq"
- * doesn't increase sseq if this is a retry (we timed out)
- */
-void send_nack(Slider* this, uint8_t seq){
-	static packet response;
-	static int prev_seq = -1;
-	
-	if(prev_seq != seq){
-		response.type = nack;
-		
-		response.seq = this->sseq;
-		this->sseq = seq_mod(this->sseq +1);
-		
-		set_data(&response, seq);
-	}
+	prev_num = num;
 	
 	send_msg(this->sock, response);
 }
