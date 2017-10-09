@@ -2,6 +2,7 @@
 #define WINDOW_H
 
 #include <math.h>
+
 #include "Protocol.h"
 
 #define window_size 3
@@ -42,7 +43,6 @@ packet w_front(Window* this){
 }
 
 int i_to_seq(Window* this, int i){
-	int ret = seq_mod(w_front(this).seq + i - this->start);
 	return seq_mod(w_front(this).seq + w_mod(i - this->start));
 }
 
@@ -112,7 +112,7 @@ void send_ack(Slider* this, uint8_t seq){
 		set_data(&response, seq);
 	}
 	
-	send_msg(this, response);
+	send_msg(this->sock, response);
 }
 
 /**
@@ -132,15 +132,20 @@ void send_nack(Slider* this, uint8_t seq){
 		set_data(&response, seq);
 	}
 	
-	send_msg(this, response);
+	send_msg(this->sock, response);
 }
 
 packet sl_recv(Slider* this){
 	packet msg;
-	int result;
 	
 	// block until at least 1 msg
 	rec_packet(this->sock, &msg, this->buf, 0);
+	
+	if(msg.seq != this->rseq){
+		fprintf(stderr, "received a msg with wrong seq\n");
+	}
+	
+	this->rseq = seq_mod(this->rseq +1);
 	
 	return msg;
 }
@@ -161,13 +166,13 @@ packet sl_send(Slider* this, packet msg){
 			continue; // no response, send again
 		}
 		if(response.seq != this->rseq){
-			fprintf(stderr, "received a response with wrong seq");
+			fprintf(stderr, "received a response with wrong seq\n");
 		}
 		this->rseq = seq_mod(this->rseq +1);
 
 		if(response.type == nack){
 			if(*(uint64_t*)response.data_p != msg.seq){
-				fprintf(stderr, "response nacked different sent seq");
+				fprintf(stderr, "response nacked different sent seq\n");
 			}
 			continue; // send again
 		}

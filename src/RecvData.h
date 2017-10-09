@@ -1,6 +1,8 @@
 #ifndef RECVDATA_H
 #define RECVDATA_H
 
+#include <math.h>
+
 #include "Window.h"
 
 void print_slider(Slider* this){
@@ -82,9 +84,6 @@ int handle_msg(Slider* this, packet msg){
 void respond(Slider* this){
 	// DEBUG
 	printf("response ");
-	int one = i_to_seq(&this->window, w_end(&this->window));
-	int two = w_back(&this->window).seq;
-	int last_seq = last_acc(&this->window).seq;
 	if(w_back(&this->window).seq == last_acc(&this->window).seq){
 		printf("ack %x\n", last_acc(&this->window).seq);
 		send_ack(this, last_acc(&this->window).seq);
@@ -124,41 +123,48 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 	
 	int buf_size;
 	
+	
 	msg.type = ok;
+	
+	printf("> sending ok\n");
+	
 	msg = sl_send(this, msg);
 	buf_size = msg.size;
+	
+	printf("< response:\n");
+	print(msg);
+	
+	if(msg.type != data){
+		fprintf(stderr, "received wrong type on response\n");
+	}
 
 	handle_msg(this, msg);
 	print_slider(this);
 	
 	while(!ended){
 		// DEBUG
-		buf_size = 1;
-//		if(msg.type == invalid)
-//			buf_size = rec_packet(this->sock, &msg, this->buff, 0);
+		if(msg.type == invalid)
+			buf_size = rec_packet(this->sock, &msg, this->buf, 0);
+		//buf_size = 1;
 		while(buf_size > 0){
-		//while( indexes_remain(&this->window) > 0 ){
-			// block until at least 1 msg
-			// DEBUG
-			// rec_packet(this->sock, &msg, this->buf, 0);
-			printf("Receiving Packet ");
-			printf("error = ");
-			int result;
-			if(scanf("%d", &result) < 0) fprintf(stderr, "scan error\n");
-			msg.error = result;
-			printf("enter seq = ");
-			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-			msg.seq = result;
-			printf("enter size = ");
-			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-			msg.size = result;
-			printf("enter type = ");
-			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-			msg.type = result;
-			msg.data_p = (uint8_t*)malloc(msg.size);
-			for(int i = 0; i < msg.size; i++){
-				msg.data_p[i] = i;
-			}
+//			printf("Receiving Packet ");
+//			printf("error = ");
+//			int result;
+//			if(scanf("%d", &result) < 0) fprintf(stderr, "scan error\n");
+//			msg.error = result;
+//			printf("enter seq = ");
+//			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+//			msg.seq = result;
+//			printf("enter size = ");
+//			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+//			msg.size = result;
+//			printf("enter type = ");
+//			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+//			msg.type = result;
+//			msg.data_p = (uint8_t*)malloc(msg.size);
+//			for(int i = 0; i < msg.size; i++){
+//				msg.data_p[i] = i;
+//			}
 			print(msg);
 			
 			handle_msg(this, msg);
@@ -167,13 +173,13 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 			print_slider(this);
 			
 			// DEBUG
-			printf("next msg buf_size = ");
-			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-			buf_size = result;
-//			buf_size = 0;
-//			if(indexes_remain(this->window) > 0){
-//				buf_size = try_packet(this->sock, &msg, this->buf);
-//			}
+			buf_size = 0;
+			if(indexes_remain(&this->window) > 0){
+				buf_size = try_packet(this->sock, &msg, this->buf);
+			}
+//			printf("next msg buf_size = ");
+//			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+//			buf_size = result;
 		}
 		
 		int msgs_to_write = seq_mod( last_acc(&this->window).seq +1 - w_front(&this->window).seq );
@@ -199,7 +205,7 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 		respond(this);
 	}
 	if(rec_size < data_size){
-		fprintf(stderr, "File transfer error, received %x/%x bytes", rec_size, data_size);
+		fprintf(stderr, "File transfer error, received %lu/%lu bytes", rec_size, data_size);
 	}
 	
 	this->rseq = seq_mod(last_acc(&this->window).seq +1);

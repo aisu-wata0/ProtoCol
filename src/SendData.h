@@ -1,6 +1,8 @@
 #ifndef SENDDATA_H
 #define SENDDATA_H
 
+#include <math.h>
+
 #include "Window.h"
 
 void print_window(Slider* this){
@@ -127,21 +129,20 @@ void set_sent(Window* this){
 	} while(it != w_mod(w_end(this) +1));
 }
 
-void send_window(Window* this){
+void send_window(Slider* this){
 	printf("Sending window >\n");
-	int it = this->start;
+	int it = this->window.start;
 	do {
-		if(this->arr[it].type == invalid){
+		if(this->window.arr[it].type == invalid){
 			break;
 		}
-		if(this->arr[it].error){
-			print(this->arr[it]);
-			// DEBUG
-			// send_msg(this->sock, this->arr[it]);
+		if(this->window.arr[it].error){
+			print(this->window.arr[it]);
+			send_msg(this->sock, this->window.arr[it]);
 		}
 		
 		it = w_mod(it+1);
-	} while(it != w_mod(w_end(this) +1));
+	} while(it != w_mod(w_end(&this->window) +1));
 	printf("> sent\n\n");
 }
 
@@ -188,43 +189,41 @@ void send_data(Slider* this, FILE* stream){
 	while(!ended){
 		print_window(this);
 		
-		send_window(&this->window);
-		
-		printf("Receive reply? ");
-		int reply;
-		if(scanf("%d", &reply) < 0) fprintf(stderr, "scan error\n");
-		if(reply < 1){
-			continue;
-		}
-		
+		send_window(this);
+		// DEBUG
 		// with timeout
-//		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
-//		if(buf_n < 1){
-//			continue; // no response, send window again
+		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
+		if(buf_n < 1){
+			continue; // no response, send window again
+		}
+//		printf("Receive reply? ");
+//		int reply;
+//		if(scanf("%d", &reply) < 0) fprintf(stderr, "scan error\n");
+//		if(reply < 1){
+//			continue;
 //		}
+//		int result;
+//		
+//		printf("enter seq = ");
+//		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+//		response.seq = result;
+//		
+//		printf("enter type = ");
+//		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+//		response.type = result;
+//		
+//		response.size = 1;
+//		response.data_p = (uint8_t*)malloc(1);
+//		printf("data_p[0] = ");
+//		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+//		response.data_p[0] = result;
+//		
+//		printf("error = ");
+//		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+//		response.error = result;
+//		print(response);
 
 		set_sent(&this->window);
-		
-		int result;
-		
-		printf("enter seq = ");
-		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-		response.seq = result;
-		
-		printf("enter type = ");
-		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-		response.type = result;
-		
-		response.size = 1;
-		response.data_p = (uint8_t*)malloc(1);
-		printf("data_p[0] = ");
-		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-		response.data_p[0] = result;
-		
-		printf("error = ");
-		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-		response.error = result;
-		print(response);
 		
 		fill = handle_response(&this->window, response);
 		
