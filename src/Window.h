@@ -74,105 +74,6 @@ typedef struct {
 	int rseq, sseq;
 } Slider;
 
-void print_slider(Slider* this){
-	printf("indexes remain = %d; \tstart=%x; \tacc=%x; \n", indexes_remain(&this->window), this->window.start, this->window.acc);
-	int it;
-	
-	it = this->window.start;
-	do{
-		printf(" %x", it);
-		
-		it = w_mod(it+1);
-	} while(it != w_mod(w_end(&this->window) +1));
-	printf("\n");
-	
-	it = this->window.start;
-	do{
-		if(this->window.arr[it].error){
-			printf("  ");
-		} else {
-			printf(" %x", this->window.arr[it].seq % 0xf);
-		}
-		
-		it = w_mod(it+1);
-	} while(it != w_mod(w_end(&this->window) +1));
-	printf("\n");
-	
-	it = this->window.start;
-	do{
-		printf(" %x", this->window.arr[it].type % 0xf);
-		
-		it = w_mod(it+1);
-	} while(it != w_mod(w_end(&this->window) +1));
-	printf("\n");
-	
-	it = this->window.start;
-	do{
-		if(it == this->window.acc){
-			printf(" a");
-		} else {
-			printf("  ");
-		}
-		
-		it = w_mod(it+1);
-	} while(it != w_mod(w_end(&this->window) +1));
-	printf("\n");
-}
-
-void print_window(Slider* this){
-	printf("\n");
-	printf("acc=%x; \tstart=%x; \n", this->window.acc, this->window.start);
-	int it;
-	
-	it = this->window.start;
-	do{
-		printf(" %x", it);
-		
-		it = w_mod(it+1);
-	} while(it != w_mod(w_end(&this->window) +1));
-	printf("\n");
-	
-	it = this->window.start;
-	do{
-		printf(" %x", this->window.arr[it].seq % 0xf);
-
-		it = w_mod(it+1);
-	} while(it != w_mod(w_end(&this->window) +1));
-	printf("\n");
-	
-	it = this->window.start;
-	do{
-		if(this->window.arr[it].error){
-			printf(" t"); // to send
-		} else {
-			printf(" s"); // sent
-		}
-		
-		it = w_mod(it+1);
-	} while(it != w_mod(w_end(&this->window) +1));
-	printf("\n");
-	
-	it = this->window.start;
-	do{
-		printf(" %x", this->window.arr[it].type % 0xf);
-		
-		it = w_mod(it+1);
-	} while(it != w_mod(w_end(&this->window) +1));
-	printf("\n");
-	
-	it = this->window.start;
-	do{
-		if(it == this->window.acc){
-			printf(" a");
-		} else {
-			printf("  ");
-		}
-		
-		it = w_mod(it+1);
-	} while(it != w_mod(w_end(&this->window) +1));
-	printf("\n");
-}
-
 int seq_to_i(Window* this, int seq){
 	// 0 1 2 3 4
 	//   a s
@@ -197,7 +98,6 @@ void slider_init(Slider* this, char* device){
 /**
  * @brief sends ack "seq"
  * doesn't increase sseq if this is a retry (we timed out)
- * @param seq
  */
 void send_ack(Slider* this, uint8_t seq){
 	static packet response;
@@ -209,9 +109,7 @@ void send_ack(Slider* this, uint8_t seq){
 		response.seq = this->sseq;
 		this->sseq = seq_mod(this->sseq +1);
 		
-		response.size = ceil(seq_b/(double)8);
-		response.data_p = (uint8_t*)malloc(response.size);
-		response.data_p[0] = seq;
+		set_data(&response, seq);
 	}
 	
 	send_msg(this, response);
@@ -219,6 +117,7 @@ void send_ack(Slider* this, uint8_t seq){
 
 /**
  * @brief sends nack "seq"
+ * doesn't increase sseq if this is a retry (we timed out)
  */
 void send_nack(Slider* this, uint8_t seq){
 	static packet response;
@@ -229,61 +128,47 @@ void send_nack(Slider* this, uint8_t seq){
 		
 		response.seq = this->sseq;
 		this->sseq = seq_mod(this->sseq +1);
-		//response.size = floor(log2(seq)) + 1;
-		response.size = ceil(seq_b/(double)8);
-		response.data_p = (uint8_t*)malloc(response.size);
-		response.data_p[0] = seq;
+		
+		set_data(&response, seq);
 	}
 	
 	send_msg(this, response);
 }
 
-/**
- * @brief if there's packets waiting and space in the queue, push packets
- */
-//void update_queue(Slider* this){
-//	int result = 1;
-//	packet msg;
-//	
-//	while(result > 0 && this->queue.size < window_size){
-//		result = try_packet(this->sock, &msg, this->buf);
-//		if(result > 0){
-//			if(msg.error){
-//				send_nack(msg.seq);
-//			} else if(msg.seq == this->seq){
-//				push_back(this->queue, msg);
-//			} else if(msg.seq > this->seq){
-//				// (msg.seq - back(this->queue).seq) == how much more space you need to store this message
-//				// if msg.seq comes after the back packet it how need n more indexes, where n is how ahead is the msg
-//				// eg: if the back elem is 2, you receive msg.seq = 4, you should need 2 more indexes
-//				// [2,  , 4], where 3 will be invalid, now 4 is the back elem
-//				// if the packet on the back has seq greater than msg.seq, it already should have space in the array
-//				if( (window_size - this->queue.size) >= (msg.seq - back(this->queue).seq) ){
-//					this->queue.arr[ (this->queue.acc + (msg.seq - this->seq)) % window_size ] = msg;
-//					this->queue.acc + 1 + (msg.seq - this->seq) % window_size
-//				}
-//			}
-//		}
-//	}
-//	
-//	send_ack(this->seq -1);
-//}
-//
-//packet sl_rec_packet(Slider* this){
-//	packet msg;
-//	int result;
-//	
-//	// block until at least 1 msg
-//	if(this->queue.size == 0){
-//		rec_packet(this->sock, &msg, this->buf, 0);
-//		push_back(this->queue, msg);
-//	}
-//	
-//	msg = w_front(this);
-//	pop(this);
-//	update_queue(this);
-//	
-//	return msg;
-//}
+packet sl_recv(Slider* this){
+	packet msg;
+	int result;
+	
+	// block until at least 1 msg
+	rec_packet(this->sock, &msg, this->buf, 0);
+	
+	return msg;
+}
+
+packet sl_send(Slider* this, packet msg){
+	packet response;
+	bool responded;
+	
+	msg.seq = this->sseq;
+	this->sseq = seq_mod(this->sseq +1);
+	
+	while( ! responded){
+		send_msg(this->sock, msg);
+		
+		// with timeout
+		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
+		if(buf_n < 1){
+			continue; // no response, send again
+		}
+		if(response.seq != this->rseq){
+			fprintf(stderr, "received a response with wrong seq");
+		}
+		this->rseq = seq_mod(this->rseq +1);
+
+		responded = true;
+	}
+	
+	return response;
+}
 
 #endif

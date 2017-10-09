@@ -29,7 +29,7 @@ int master(char* device){
 	Slider slider;
 	slider_init(&slider, device);
 	
-	char* filename = "IO/in.txt";
+	char* filename = "../bfs15-lgjr15.tar.gz";
 	
 	FILE* stream = fopen(filename,"rb");
 	
@@ -39,10 +39,7 @@ int master(char* device){
 	}
 	
 	packet msg;
-	msg.type = tam;
-	msg.size = byte_len((uint64_t)sb.st_size);
-	msg.data_p = malloc(msg.size);
-	*(uint64_t*)msg.data_p = sb.st_size;
+	set_data(&msg, sb.st_size);
 	
 	printf("file size = %llu bytes\n", *(uint64_t*)msg.data_p);
 	

@@ -317,6 +317,13 @@ int try_packet(int sock, packet* msg_p, uint8_t* buf){
 
 	return buf_n;
 }
+
+void set_data(packet* msg, uint64_t num){
+	msg->size = byte_len(num);
+	msg->data_p = malloc(msg->size);
+	*(uint64_t*)msg->data_p = num;
+}
+
 // DEBUG
 void endian_test(){
 	packet msg;
