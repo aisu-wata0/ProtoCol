@@ -21,6 +21,8 @@
 
 #define FAIL -1
 #define mod(X,Y) (((X) % (Y)) < 0 ? ((X) % (Y)) + (Y) : ((X) % (Y)))
+#define byte_log 1/log10(256)
+#define byte_len(X) (floor(log10((X))*byte_log)+1)
 
 typedef enum msg_type {
 	ack = 0x0,
@@ -32,7 +34,7 @@ typedef enum msg_type {
 	get = 0x8,
 	put = 0x9,
 	end = 0xa,
-	
+	invalid = 0xb,
 	screen = 0xc,
 	data = 0xd,
 	error = 0xe,
@@ -67,9 +69,10 @@ enum error_code {
 #define type_b 5
 #define parity_b 8
 
-#define data_max (0x1 << size_b)-1 // (2^size_b)-1 maximum size of data
+#define data_max ((0x1 << size_b)-1) // (2^size_b)-1 maximum size of data
+#define max_file_size ((0x1 << data_max)-1)
 
-#define seq_max (0x1 << seq_b)-1 // (2^size_b)-1 maximum size of seq
+#define seq_max ((0x1 << seq_b)-1) // (2^size_b)-1 maximum size of seq
 
 // if mod is 64, 00 should be after 63
 // 63 00	-63 < -32
@@ -78,7 +81,7 @@ enum error_code {
 #define seq_after(X,Y) ((((X)-(Y)) < -(seq_max+1)/2) || (((X)-(Y)) > 0))
 #define seq_mod(X) mod((X),(seq_max+1))
 
-#define BUF_MAX 4 + data_max
+#define BUF_MAX (4 + data_max)
 
 typedef struct {
 	uint size : size_b; // of data
@@ -165,13 +168,13 @@ int serialize(packet msg, uint8_t** buf_p){
 	return buf_n;
 }
 
-void send_msg(int sock, packet msg){
+int send_msg(int sock, packet msg){
 	uint8_t* buf;
 	int buf_n;
 	
-	buf_n = serialize(msg, &buf);
 	// DEBUG
-	//send(sock, buf, buf_n, 0);
+	return buf_n = serialize(msg, &buf);
+	//return send(sock, buf, buf_n, 0);
 }
 
 void print(packet msg){
@@ -243,16 +246,18 @@ int frame_msg(uint8_t* buf, int buf_n){
 }
 
 /**
- * @brief Receives packet from raw socket
+ * @brief Receives a valid packet from raw socket
  * @param sock target socket
  * @param msg by reference
  * @param buf previously allocated buffer
- * @return 
+ * @param timeout_sec timeout in secs, if 0, blocks until a packet is received
+ * @return returns -1 if timed out, else, bytes written in buf
  */
-int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec = 0){
+int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
 
+	int msg_start;
 	int buf_n = 0;
 	int ended = false;
 	
@@ -262,18 +267,21 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec = 0){
 		struct timeval tv;
 		if(timeout_sec > 0){
 			tv.tv_sec =	timeout_sec;
-			setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+			if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval)) < 0)
+				fprintf(stderr, "setsockopt failed\n");
 		}
 		
-		buf_n = recvfrom(sock, buf, BUF_MAX, flags, &saddr, (socklen_t *)&saddr_len);
+		buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
 		// receive a network packet and copy in to buffer
 		
 		if(timeout_sec > 0){
 			tv.tv_sec = 0; tv.tv_usec = 0;
-			setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+			if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(struct timeval)) < 0)
+				fprintf(stderr, "setsockopt failed\n");
 		}
-		
+		// timed out || received valid packet
 		if((buf_n < 1) || (buf[0] == framing_bits)){
+			msg_start = 0; // starts at [0]
 			ended = true;
 		}
 		//msg_start = frame_msg(buf, buf_n);
@@ -285,7 +293,7 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec = 0){
 }
 
 /**
- * @brief Receives packet from raw socket
+ * @brief Tries for a packet in raw socket, instant timeout
  * @param sock target socket
  * @param msg by reference
  * @param buf previously allocated buffer
@@ -308,6 +316,34 @@ int try_packet(int sock, packet* msg_p, uint8_t* buf){
 	*msg_p = deserialize(&buf[1], buf_n-1);
 
 	return buf_n;
+}
+// DEBUG
+void endian_test(){
+	packet msg;
+	msg.data_p = NULL;
+	unsigned long long seq = 1;
+	while(seq <= ((unsigned long long)0x1 << 32)){
+		free(msg.data_p);
+		msg.data_p = NULL;
+		msg.size = floor(log2(seq)) + 1;
+		msg.data_p = (uint8_t*)malloc(data_max);
+		memset(msg.data_p, 0, data_max);
+		*(ulong*)msg.data_p = seq;
+		for(int i = 0; i < (int)(32/8); i++){
+			if(msg.data_p[i] != 0){
+				printf("%02x ", msg.data_p[i]);
+			}else{
+				printf("   ");
+			
+			}
+		}
+		printf("\n");
+		
+		unsigned long long test = *(ulong*)msg.data_p;
+		printf("%llu\n", test);
+		
+		seq <<= 1;
+	}
 }
 
 #endif
