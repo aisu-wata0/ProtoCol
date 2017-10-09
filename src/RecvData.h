@@ -46,6 +46,8 @@ void print_slider(Slider* this){
 	do{
 		if(it == this->window.acc){
 			printf(" a");
+		} else if(it == this->window.start) {
+			printf(" s");
 		} else {
 			printf("  ");
 		}
