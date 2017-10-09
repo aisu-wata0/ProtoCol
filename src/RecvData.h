@@ -85,6 +85,28 @@ int handle_msg(Slider* this, packet msg){
 	return false;
 }
 
+void write_to_file(Slider* this, FILE* stream, uint64_t* rec_size, bool* ended){
+	int msgs_to_write = seq_mod( last_acc(&this->window).seq +1 - w_front(&this->window).seq );
+	// has at least one msg to write
+	if( msgs_to_write > 0 ){
+		printf("started writing, seqs: ");
+		int it = this->window.start;
+		do {
+			if(this->window.arr[it].type == end){
+				*ended = true;
+				break;
+			}
+			printf("%hx ", this->window.arr[it].seq % 0xf);
+			//writing data to file
+			fwrite(this->window.arr[it].data_p, 1, this->window.arr[it].size, stream);
+			*rec_size += this->window.arr[it].size;
+			
+			it = w_mod(it + 1);
+		} while(it != w_mod(this->window.acc +1));
+		printf("\n");
+	}
+}
+
 void respond(Slider* this){
 	// DEBUG
 	printf("response ");
@@ -187,28 +209,12 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 //			buf_size = result;
 		}
 		
-		int msgs_to_write = seq_mod( last_acc(&this->window).seq +1 - w_front(&this->window).seq );
-		// has at least one msg to write
-		if( msgs_to_write > 0 ){
-			printf("started writing, seqs: ");
-			int it = this->window.start;
-			do {
-				if(this->window.arr[it].type == end){
-					ended = true;
-					break;
-				}
-				printf("%hx ", this->window.arr[it].seq % 0xf);
-				//writing data to file
-				fwrite(this->window.arr[it].data_p, 1, this->window.arr[it].size, stream);
-				rec_size += this->window.arr[it].size;
-				
-				it = w_mod(it + 1);
-			} while(it != w_mod(this->window.acc +1));
-			printf("\n");
-		}
+		write_to_file(this, stream, &rec_size, &ended);
 		
 		respond(this);
+		
 		move_window(this);
+		
 		print_slider(this);
 	}
 	if(rec_size < data_size){
