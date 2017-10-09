@@ -169,9 +169,15 @@ packet sl_send(Slider* this, packet msg){
 			printf("timeout. \t");
 			continue; // no response, send again
 		}
-		if(response.seq != this->rseq){
+		
+		while(seq_after(this->rseq, response.seq)){
+			int buf_n = rec_packet(this->sock, &response, this->buf, 0);
+		} // TODO max tries
+		
+		if(this->rseq != response.seq){
 			fprintf(stderr, "received a response with wrong seq\n");
 		}
+		
 		this->rseq = seq_mod(this->rseq +1);
 
 		if(response.type == nack){
