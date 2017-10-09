@@ -3,6 +3,50 @@
 
 #include "Window.h"
 
+void print_slider(Slider* this){
+	printf("indexes remain = %d; \tstart=%x; \tacc=%x; \n", indexes_remain(&this->window), this->window.start, this->window.acc);
+	int it;
+	
+	it = this->window.start;
+	do{
+		printf(" %x", it);
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		if(this->window.arr[it].error){
+			printf("  ");
+		} else {
+			printf(" %x", this->window.arr[it].seq % 0xf);
+		}
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		printf(" %x", this->window.arr[it].type % 0xf);
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		if(it == this->window.acc){
+			printf(" a");
+		} else {
+			printf("  ");
+		}
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+}
 /**
  * @brief if proper, adds message to window and increments window.acc
  * @param msg 

@@ -3,6 +3,60 @@
 
 #include "Window.h"
 
+void print_window(Slider* this){
+	printf("\n");
+	printf("acc=%x; \tstart=%x; \n", this->window.acc, this->window.start);
+	int it;
+	
+	it = this->window.start;
+	do{
+		printf(" %x", it);
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		printf(" %x", this->window.arr[it].seq % 0xf);
+
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		if(this->window.arr[it].error){
+			printf(" t"); // to send
+		} else {
+			printf(" s"); // sent
+		}
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		printf(" %x", this->window.arr[it].type % 0xf);
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+	
+	it = this->window.start;
+	do{
+		if(it == this->window.acc){
+			printf(" a");
+		} else {
+			printf("  ");
+		}
+		
+		it = w_mod(it+1);
+	} while(it != w_mod(w_end(&this->window) +1));
+	printf("\n");
+}
+
 packet next_packet(Slider* this, FILE* stream){
 	packet msg;
 	msg.error = true;
@@ -144,7 +198,7 @@ void send_data(Slider* this, FILE* stream){
 		}
 		
 		// with timeout
-//		int buf_n = rec_packet(int sock, packet* msg_p, uint8_t* buf, 1);
+//		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
 //		if(buf_n < 1){
 //			continue; // no response, send window again
 //		}
