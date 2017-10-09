@@ -73,7 +73,11 @@ int handle_msg(Slider* this, packet msg){
 			
 			return true;
 		}
+		
+		printf("had already received this message\n");
 	}
+	
+	printf("message not added\n");
 	
 	free(msg.data_p);
 	msg.data_p = NULL;
@@ -84,13 +88,16 @@ int handle_msg(Slider* this, packet msg){
 void respond(Slider* this){
 	// DEBUG
 	printf("response ");
-	if(w_back(&this->window).seq == last_acc(&this->window).seq){
+	if((w_back(&this->window).seq == last_acc(&this->window).seq) || (last_acc(&this->window).type == end)){
 		printf("ack %x\n", last_acc(&this->window).seq);
 		send_ack(this, last_acc(&this->window).seq);
 	} else {
 		printf("nack %x\n", first_err(&this->window).seq);
 		send_nack(this, first_err(&this->window).seq);
 	}
+}
+
+void move_window(Slider* this){
 	// 3 4 5 6	front is [0]=3, acc is [2]=5
 	// 7 8 9 6	[0]=5+1 [1]=5+2 [2]=5+3
 	// move window only if the first has been ack
@@ -111,8 +118,6 @@ void respond(Slider* this){
 		} while (it != w_mod(this->window.acc +1));
 		this->window.start = w_mod(this->window.acc +1);
 	}
-	// DEBUG
-	print_slider(this);
 }
 
 uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
@@ -203,6 +208,8 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 		}
 		
 		respond(this);
+		move_window(this);
+		print_slider(this);
 	}
 	if(rec_size < data_size){
 		fprintf(stderr, "File transfer error, received %lu/%lu bytes", rec_size, data_size);
