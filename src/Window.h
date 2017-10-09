@@ -31,7 +31,7 @@ void w_init(Window* this, int seq){
 	do {
 		this->arr[w_mod(this->start +i)].type = invalid;
 		this->arr[w_mod(this->start +i)].data_p = NULL;
-		this->arr[w_mod(this->start +i)].seq = w_mod(seq + i);
+		this->arr[w_mod(this->start +i)].seq = seq_mod(seq + i);
 		this->arr[w_mod(this->start +i)].error = true;
 		
 		i += 1;
@@ -162,9 +162,6 @@ packet sl_send(Slider* this, packet msg){
 		
 		// with timeout
 		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
-		printf("received packet buf_n=");
-		printf("%d\n", buf_n);
-		print(response);
 		if(buf_n < 1){
 			continue; // no response, send again
 		}
