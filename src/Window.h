@@ -152,7 +152,7 @@ packet sl_recv(Slider* this){
 
 packet sl_send(Slider* this, packet msg){
 	packet response;
-	bool responded;
+	bool responded = false;
 	
 	msg.seq = this->sseq;
 	this->sseq = seq_mod(this->sseq +1);
@@ -162,6 +162,9 @@ packet sl_send(Slider* this, packet msg){
 		
 		// with timeout
 		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
+		printf("received packet buf_n=");
+		printf("%d\n", buf_n);
+		print(response);
 		if(buf_n < 1){
 			continue; // no response, send again
 		}
