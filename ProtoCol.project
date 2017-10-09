@@ -14,6 +14,9 @@
     <File Name="src/master.h"/>
     <File Name="src/dorei.h"/>
     <File Name="src/SlidingWindow.h"/>
+    <File Name="src/RecvData.h"/>
+    <File Name="src/SendData.h"/>
+    <File Name="src/Window.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="root">
     <File Name="Makefile"/>
@@ -35,7 +38,7 @@
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="-n enp3s0 -d" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="./" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="-n enp3s0 -m" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="./" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>

@@ -165,6 +165,13 @@ packet sl_send(Slider* this, packet msg){
 		}
 		this->rseq = seq_mod(this->rseq +1);
 
+		if(response.type == nack){
+			if(*(uint64_t*)response.data_p != msg.seq){
+				fprintf(stderr, "response nacked different sent seq");
+			}
+			continue; // send again
+		}
+		
 		responded = true;
 	}
 	
