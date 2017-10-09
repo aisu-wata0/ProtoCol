@@ -64,6 +64,7 @@ int handle_msg(Slider* this, packet msg){
 		fprintf(stderr, "received message ahead of the window\n");
 		msg.error = true;
 	}
+	
 	if( !msg.error ){
 		if( ! (msg.type == data || msg.type == end)){
 			fprintf(stderr, "received a message of wrong type (%x) on data transfer\n", msg.type);
@@ -82,8 +83,10 @@ int handle_msg(Slider* this, packet msg){
 			
 			return true;
 		}
-		
 		printf("had already received this message\n");
+		if(msg.data_p == this->window.arr[msg_pos].data_p){
+			msg.data_p = NULL;
+		}
 	}
 	
 	printf("message not added\n");
@@ -107,7 +110,11 @@ void write_to_file(Slider* this, FILE* stream, uint64_t* rec_size, bool* ended){
 			}
 			printf("%hx ", this->window.arr[it].seq % 0xf);
 			// writing data to file
-			fwrite(this->window.arr[it].data_p, 1, this->window.arr[it].size, stream);
+			//fwrite(this->window.arr[it].data_p, 1, this->window.arr[it].size, stream);
+			fwrite(this->window.arr[it].data_p, this->window.arr[it].size, 1, stream);
+			
+			printf(" %x ", this->window.arr[it].data_p);
+			printf(" %s ", this->window.arr[it].data_p);
 			*rec_size += this->window.arr[it].size;
 			
 			it = w_mod(it + 1);
@@ -173,9 +180,9 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 	
 	printf("> sending ok\n");
 	
-	/*DEBUG*
+	/*DEBUG*/
 	msg = sl_send(this, msg);
-	/**/
+	/**
 	read_msg(&msg);
 	/**/
 	
@@ -188,11 +195,10 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 		fprintf(stderr, "received wrong type on response\n");
 	}
 
-	handle_msg(this, msg);
 	print_slider(this);
 	
 	while(!ended){
-		/*DEBUG*
+		/*DEBUG*/
 		if(msg.type == invalid){
 			buf_size = rec_packet(this->sock, &msg, this->buf, 0);
 		}
@@ -200,7 +206,7 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 		buf_size = 1;
 		/**/
 		while(buf_size > 0){
-			/*DEBUG*/
+			/*DEBUG*
 			read_msg(&msg);
 			/**/
 			
@@ -211,12 +217,12 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 			
 			print_slider(this);
 			
-			/*DEBUG*
+			/*DEBUG*/
 			buf_size = 0;
 			if(indexes_remain(&this->window) > 0){
 				buf_size = try_packet(this->sock, &msg, this->buf);
 			}
-			/**/
+			/**
 			printf("next msg buf_size = ");
 			int result;
 			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
