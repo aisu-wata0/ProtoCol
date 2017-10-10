@@ -62,8 +62,7 @@ void print_window(Slider* this){
 packet next_packet(Slider* this, FILE* stream){
 	packet msg;
 	msg.error = true;
-	msg.seq = this->sseq;
-	this->sseq = seq_mod(this->sseq +1);
+	set_seq(this, &msg);
 	
 	msg.data_p = (uint8_t*)malloc(data_max);
 	msg.size = fread(msg.data_p, 1, data_max, stream);
@@ -136,7 +135,7 @@ void send_window(Slider* this){
 		}
 		if(this->window.arr[it].error){
 			if(DEBUG_W)print(this->window.arr[it]);
-			send_msg(this->sock, this->window.arr[it]);
+			send_msg(this->sock, this->window.arr[it], this->buf);
 		}
 		
 		it = w_mod(it+1);

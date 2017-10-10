@@ -180,7 +180,7 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 	msg.size = 0;
 	
 	/*DEBUG*/
-	msg = sl_send(this, msg);
+	msg = sl_talk(this, msg);
 	/**
 	read_msg(&msg);
 	/**/

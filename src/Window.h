@@ -97,6 +97,10 @@ void slider_init(Slider* this, char* device){
 	this->sseq = 0;
 }
 
+void set_seq(Slider* this, packet* msg){
+	msg->seq = this->sseq;
+	this->sseq = seq_mod(this->sseq +1);
+}
 /**
  * @brief sends msg with num in the data_p
  * doesn't increase sseq if this is a retry (we timed out)
@@ -106,12 +110,11 @@ void send_number(Slider* this, msg_type_t typ, uint64_t num){
 	
 	msg.type = typ;
 	
-	msg.seq = this->sseq;
-	this->sseq = seq_mod(this->sseq +1);
+	set_seq(this, &msg);
 	
 	set_data(&msg, num);
 	
-	send_msg(this->sock, msg);
+	send_msg(this->sock, msg, this->buf);
 }
 
 int sl_recv(Slider* this, packet* msg, int timeout_sec){
@@ -128,7 +131,7 @@ int sl_recv(Slider* this, packet* msg, int timeout_sec){
 	}
 	
 	if(this->rseq != msg->seq){
-		fprintf(stderr, "expected seq=%x received=%x\n", this->rseq, msg->seq);
+		if(DEBUG_W)printf("\tExpected seq=%x received=%x\n", this->rseq, msg->seq);
 		this->rseq = msg->seq;
 	}
 	
@@ -136,19 +139,28 @@ int sl_recv(Slider* this, packet* msg, int timeout_sec){
 	
 	return buf_n;
 }
+/**
+ * @brief Sends message of current sequence
+ */
+void sl_send(Slider* this, packet* msg){
+	set_seq(this, msg);
+	
+	if(DEBUG_W)printf("> Sending\n ");
+	if(DEBUG_W)print(*msg);
+	send_msg(this->sock, *msg, this->buf);
+}
 
-packet sl_send(Slider* this, packet msg){
+packet sl_talk(Slider* this, packet msg){
 	packet response;
 	bool responded = false;
 	
-	msg.seq = this->sseq;
-	this->sseq = seq_mod(this->sseq +1);
+	set_seq(this, &msg);
 	
 	if(DEBUG_W)printf("> Sending\n ");
-	print(msg);
+	if(DEBUG_W)print(msg);
 	while( ! responded){
 		if(DEBUG_W)printf("try... ");
-		send_msg(this->sock, msg);
+		send_msg(this->sock, msg, this->buf);
 		
 		// with timeout
 		int buf_n = sl_recv(this, &response, TIMEOUT);
@@ -161,8 +173,7 @@ packet sl_send(Slider* this, packet msg){
 			if(*(uint64_t*)response.data_p != msg.seq){
 				fprintf(stderr, "response nacked different sent seq\n");
 			}
-			msg.seq = this->sseq;
-			this->sseq = seq_mod(this->sseq +1);
+			set_seq(this, &msg);
 			continue; // send again
 		}
 		
