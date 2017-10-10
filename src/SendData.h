@@ -191,45 +191,44 @@ void send_data(Slider* this, FILE* stream){
 		print_window(this);
 		
 		send_window(this);
-		// DEBUG
+		/*DEBUG*/
 		// with timeout
-		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
+		int buf_n = sl_recv(this, &response, 1);
 		if(buf_n < 1){
 			printf("Timed out\n");
 			continue; // no response, send window again
 		}
-//		printf("Receive reply? ");
-//		int reply;
-//		if(scanf("%d", &reply) < 0) fprintf(stderr, "scan error\n");
-//		if(reply < 1){
-//			continue;
-//		}
-//		int result;
-//		
-//		printf("enter seq = ");
-//		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-//		response.seq = result;
-//		
-//		printf("enter type = ");
-//		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-//		response.type = result;
-//		
-//		response.size = 1;
-//		response.data_p = (uint8_t*)malloc(1);
-//		printf("data_p[0] = ");
-//		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-//		response.data_p[0] = result;
-//		
-//		printf("error = ");
-//		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-//		response.error = result;
-
+		/**
+		printf("Receive reply? ");
+		int reply;
+		if(scanf("%d", &reply) < 0) fprintf(stderr, "scan error\n");
+		if(reply < 1){
+			continue;
+		}
+		int result;
+		printf("enter seq = ");
+		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+		response.seq = result;
+		
+		printf("enter type = ");
+		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+		response.type = result;
+		
+		response.size = 1;
+		response.data_p = (uint8_t*)malloc(1);
+		printf("data_p[0] = ");
+		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+		response.data_p[0] = result;
+		
+		printf("error = ");
+		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
+		response.error = result;
+		/**/
+		
 		set_sent(&this->window);
 		
 		printf("handling response\n");
 		print(response);
-		
-		// TODO check response.seq or use sl_recv
 		
 		fill = handle_response(&this->window, response);
 		

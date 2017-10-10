@@ -100,37 +100,39 @@ void slider_init(Slider* this, char* device){
  * doesn't increase sseq if this is a retry (we timed out)
  */
 void send_number(Slider* this, msg_type_t typ, uint64_t num){
-	static packet response;
-	static bool first_pack = true;
-	static uint64_t prev_num;
-	
-	if(prev_num != num || response.type != typ || first_pack){
-		first_pack = false;
-		response.type = typ;
-		
-		response.seq = this->sseq;
-		this->sseq = seq_mod(this->sseq +1);
-		
-		set_data(&response, num);
-	}
-	prev_num = num;
-	
-	send_msg(this->sock, response);
-}
-
-packet sl_recv(Slider* this){
 	packet msg;
 	
-	// block until at least 1 msg
-	rec_packet(this->sock, &msg, this->buf, 0);
+	first_pack = false;
+	msg.type = typ;
 	
-	if(msg.seq != this->rseq){
-		fprintf(stderr, "received a msg with wrong seq\n");
+	msg.seq = this->sseq;
+	this->sseq = seq_mod(this->sseq +1);
+	
+	set_data(&msg, num);
+	
+	send_msg(this->sock, msg);
+}
+
+int sl_recv(Slider* this, packet* msg, int timeout_sec){
+	packet msg;
+	
+	int buf_n = rec_packet(this->sock, &msg, this->buf, timeout_sec);
+	if(buf_n < 1){
+		printf("timeout. \t");
+		return buf_n;
+	}
+	
+	while(seq_after(this->rseq, response.seq)){
+		int buf_n = rec_packet(this->sock, &response, this->buf, 0);
+	} // TODO max tries
+	
+	if(this->rseq != response.seq){
+		fprintf(stderr, "received a response with wrong seq\n");
 	}
 	
 	this->rseq = seq_mod(this->rseq +1);
 	
-	return msg;
+	return buf_n;
 }
 
 packet sl_send(Slider* this, packet msg){
@@ -147,22 +149,12 @@ packet sl_send(Slider* this, packet msg){
 		send_msg(this->sock, msg);
 		
 		// with timeout
-		int buf_n = rec_packet(this->sock, &response, this->buf, 1);
+		int buf_n = sl_recv(this, &response, 1);
 		if(buf_n < 1){
 			printf("timeout. \t");
 			continue; // no response, send again
 		}
 		
-		while(seq_after(this->rseq, response.seq)){
-			int buf_n = rec_packet(this->sock, &response, this->buf, 0);
-		} // TODO max tries
-		
-		if(this->rseq != response.seq){
-			fprintf(stderr, "received a response with wrong seq\n");
-		}
-		
-		this->rseq = seq_mod(this->rseq +1);
-
 		if(response.type == nack){
 			if(*(uint64_t*)response.data_p != msg.seq){
 				fprintf(stderr, "response nacked different sent seq\n");
