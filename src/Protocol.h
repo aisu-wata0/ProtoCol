@@ -198,7 +198,7 @@ packet deserialize(uint8_t* buf, int buf_n){
 	msg.error = false;
 	
 	msg.size = buf[0] >> 3;
-	msg.seq = (buf[0] & 0x0b111) | (buf[1] >> 5);
+	msg.seq = ((buf[0] & 0x0b111) << 3) | (buf[1] >> 5);
 	msg.type = (buf[1] & 0b11111);
 	
 	if(buf_n < 2+msg.size){
@@ -251,8 +251,9 @@ int serialize(packet msg, uint8_t* buf){
 		buf_n += 1;
 		buf[buf_n-1] = parity(msg);
 	}
-	
-	if(true)printf("==== serializing msg.seq = %x == %x buf_seq", msg.seq, (buf[1] & 0x0b111) | (buf[2] >> 5));
+	// TMP
+	if(true)printf("=== serializing %hhx %hhx %hhx \t", buf[0], buf[1], buf[2]);
+	if(true)printf("msg.seq %x == %x buf_seq\n", msg.seq, ((buf[1] & 0x0b111) << 3) | (buf[2] >> 5));
 	return buf_n;
 }
 
@@ -261,9 +262,7 @@ void print(packet msg){
 	for(int i=0; i < msg.size; i++){
 		printf("%hhx ", msg.data_p[i]);
 	} printf(" Parity=%hhx; \tError=%x\n", parity(msg), msg.error);
-	for(int i=0; i < msg.size; i++){
-		printf("%s ", (char*)msg.data_p);
-	}
+	printf("%s ", (char*)msg.data_p);
 	printf("\n");
 }
 

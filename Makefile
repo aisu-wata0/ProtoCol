@@ -29,7 +29,7 @@ doc:
 	doxygen doxyconfig
 
 set_debug:
-	$(eval FLAGS = -O0 -g $(WARN))
+	$(eval FLAGS = -O0 -g $(WARN) $(WNO))
 
 debug: set_debug clean all
 

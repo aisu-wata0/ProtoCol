@@ -54,7 +54,7 @@ bool process(Slider* slider, packet msg){
 	return false;
 }
 
-int master(char* device){
+int dorei(char* device){
 	Slider slider;
 	slider_init(&slider, device);
 	
