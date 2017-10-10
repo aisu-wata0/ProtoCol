@@ -22,6 +22,8 @@
 
 #define DEBUG_P false
 
+#define TIMEOUT 2
+
 #define FAIL -1
 #define mod(X,Y) (((X) % (Y)) < 0 ? ((X) % (Y)) + (Y) : ((X) % (Y)))
 #define byte_log 1/log10(256)
@@ -278,10 +280,11 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 				fprintf(stderr, "setsockopt failed\n");
 		}
 		
-		printf("recv...\t", buf_n);
-		fflush(stdout);
+		if(DEBUG_P)printf("recv...");
 		buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
 		// receive a network packet and copy in to buffer
+		if(DEBUG_P)printf("%x\t", buf_n);
+		fflush(stdout);
 		
 		if(timeout_sec > 0){
 			tv.tv_sec = 0; tv.tv_usec = 0;
@@ -299,10 +302,8 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 			//msg_start = frame_msg(buf, buf_n);
 			ended = true;
 		}
-		
-		fflush(stdout);
 	}
-	printf("\n");
+	if(DEBUG_P)printf("\n");
 	
 	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
 
@@ -375,7 +376,7 @@ void read_msg(packet* msg){
 	int result;
 	
 	printf("error = ");
-	if(scanf("%d", &result) < 0) fprintf(stderr, "scan err\n");
+	if(scanf("%x", &result) < 0) fprintf(stderr, "scan err\n");
 	msg->error = result;
 	
 	printf("enter seq = ");

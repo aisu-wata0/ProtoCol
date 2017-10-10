@@ -5,6 +5,8 @@
 
 #include "Protocol.h"
 
+#define DEBUG_W true
+
 #define window_size 3
 #define w_mod(X) mod((X),(window_size))
 
@@ -102,7 +104,6 @@ void slider_init(Slider* this, char* device){
 void send_number(Slider* this, msg_type_t typ, uint64_t num){
 	packet msg;
 	
-	first_pack = false;
 	msg.type = typ;
 	
 	msg.seq = this->sseq;
@@ -114,21 +115,19 @@ void send_number(Slider* this, msg_type_t typ, uint64_t num){
 }
 
 int sl_recv(Slider* this, packet* msg, int timeout_sec){
-	packet msg;
-	
-	int buf_n = rec_packet(this->sock, &msg, this->buf, timeout_sec);
+	int buf_n = rec_packet(this->sock, msg, this->buf, timeout_sec);
 	if(buf_n < 1){
-		printf("timeout. \t");
+			if(DEBUG_W)printf("Timed out.\n");
 		return buf_n;
 	}
 	
-	while(seq_after(this->rseq, response.seq)){
-		int buf_n = rec_packet(this->sock, &response, this->buf, 0);
+	while(seq_after(this->rseq, msg->seq)){
+		rec_packet(this->sock, msg, this->buf, 0);
 	}
 	
-	if(this->rseq != response.seq){
-		fprintf(stderr, "expected seq=%d received $d\n", this->rseq, response.seq);
-		this->rseq = response.seq;
+	if(this->rseq != msg->seq){
+		fprintf(stderr, "expected seq=%x received=%x\n", this->rseq, msg->seq);
+		this->rseq = msg->seq;
 	}
 	
 	this->rseq = seq_mod(this->rseq +1);
@@ -143,16 +142,16 @@ packet sl_send(Slider* this, packet msg){
 	msg.seq = this->sseq;
 	this->sseq = seq_mod(this->sseq +1);
 	
-	printf("sending\n ");
+	if(DEBUG_W)printf("> Sending\n ");
 	print(msg);
 	while( ! responded){
-		printf("again ");
+		if(DEBUG_W)printf("try... ");
 		send_msg(this->sock, msg);
 		
 		// with timeout
-		int buf_n = sl_recv(this, &response, 1);
+		int buf_n = sl_recv(this, &response, TIMEOUT);
 		if(buf_n < 1){
-			printf("timeout. \t");
+			if(DEBUG_W)printf("timeout \t");
 			continue; // no response, send again
 		}
 		
@@ -160,11 +159,16 @@ packet sl_send(Slider* this, packet msg){
 			if(*(uint64_t*)response.data_p != msg.seq){
 				fprintf(stderr, "response nacked different sent seq\n");
 			}
+			msg.seq = this->sseq;
+			this->sseq = seq_mod(this->sseq +1);
 			continue; // send again
 		}
 		
 		responded = true;
 	}
+	
+	if(DEBUG_W)printf("< Response:\n");
+	if(DEBUG_W)print(msg);
 	
 	return response;
 }
