@@ -103,7 +103,7 @@ void fill_window(Slider* this, int from, FILE* stream, bool* ended){
 			this->window.arr[i].type = invalid;
 			this->window.arr[i].seq = i_to_seq(&this->window, i);
 		}
-		/*TEMP*/
+		/*TMP*/
 		if(this->window.arr[i].seq != i_to_seq(&this->window, i)){
 			if(DEBUG_W)fprintf(stderr,"ERROR: seqs should be equal! %x != %x\n", this->window.arr[i].seq%0xf, i_to_seq(&this->window, i)%0xf);
 			this->window.arr[i].seq = i_to_seq(&this->window, i);
@@ -216,7 +216,7 @@ void send_data(Slider* this, FILE* stream){
 		}
 	}
 	
-	/*TEMP*/
+	/*TMP*/
 	if(this->sseq != seq_mod(w_back(&this->window).seq +1)){
 		fprintf(stderr, "ERROR: seqs should be equal! %x != %x\n", this->sseq%0xf, seq_mod(w_back(&this->window).seq +1)%0xf);
 	}/**/

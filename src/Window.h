@@ -149,7 +149,9 @@ void sl_send(Slider* this, packet* msg){
 	if(DEBUG_W)print(*msg);
 	send_msg(this->sock, *msg, this->buf);
 }
-
+/**
+ * @brief Repeats message until valid response arrives
+ */
 packet sl_talk(Slider* this, packet msg){
 	packet response;
 	bool responded = false;

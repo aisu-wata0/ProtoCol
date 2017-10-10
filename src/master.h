@@ -11,23 +11,40 @@
 #include "Socket.h"
 #include "SlidingWindow.h"
 
+#define COMMAND_HIST_SIZE 64
 #define COMMAND_BUF_SIZE 256
 
 void parse(packet msg){
 	
 }
 
-int dorei(char* device){
+int master(char* device){
 	Slider slider;
 	slider_init(&slider, device);
+	slider.sseq = 7;
 	uint64_t rec_bytes;
-	char command[COMMAND_BUF_SIZE];
+	char command[COMMAND_HIST_SIZE][COMMAND_BUF_SIZE];
 	char* filename;
 	packet response;
 	packet msg;
+	int result;
+	int curr_comm = 0;
+	int comm_i = 0;
 	
-	scanf("%[^\n]%*c", command);
-	msg.type = command_to_type(command, &filename);
+	// TODO make this a function
+	printf(" $\n"); // TODO print current remote dir and local dir
+	
+	/* TODO change scanf to getch
+	 * read char by char and append them to command, if its \n, append "\0"
+	 * goal: if up arrow pressed, printf("\33[2K\r"); erases current written line
+	 * go back 1 in command history:
+	 * comm_i = mod(comm_i -1, COMMAND_HIST_SIZE)
+	 * printf("%s", command[comm_i]);
+	 * https://stackoverflow.com/questions/10463201/getch-and-arrow-codes */
+	result = scanf("%[^\n]%*c", command[comm_i]);
+	printf("result = %d\n", result);
+	printf("command: %s\n", command[comm_i]);
+	msg.type = command_to_type(command[comm_i], &filename);
 	
 	while(msg.type != end){
 		msg.size = strlen(filename);
@@ -35,7 +52,19 @@ int dorei(char* device){
 		memcpy(msg.data_p, filename, msg.size);
 		
 		/*DEBUG*/
-		response = sl_talk(&slider, msg);
+		sl_send(&slider, &msg);
+		result = sl_recv(&slider, &response, TIMEOUT);
+		printf("result = %d\n", result);
+		if(result < 1){ // timed out
+			curr_comm = mod(curr_comm +1, COMMAND_HIST_SIZE); 
+			comm_i = curr_comm;
+			printf(" $\n");
+			result = scanf("%[^\n]%*c", command[comm_i]);
+			printf("result = %d\n", result);
+			printf("command: %s\n", command[comm_i]);
+			msg.type = command_to_type(command[comm_i], &filename);
+			continue;
+		}
 		/**
 		read_msg(&response);
 		slider.rseq = seq_mod(slider.rseq +1);
@@ -49,7 +78,7 @@ int dorei(char* device){
 			
 			int file_size_B = *(uint64_t*)response.data_p;
 			
-	//		if(ok)// TODO has space on current dir
+//			if(ok)// TODO has space on current dir
 				rec_bytes = receive_data(&slider, stream, file_size_B);
 			printf("\nbytes transfered = %lu\n", rec_bytes);
 			
@@ -60,8 +89,13 @@ int dorei(char* device){
 		}
 		
 		
-		scanf("%[^\n]%*c", command);
-		msg.type = command_to_type(command, &filename);
+		curr_comm = mod(curr_comm +1, COMMAND_HIST_SIZE); 
+		comm_i = curr_comm;
+		printf(" $\n");
+		result = scanf("%[^\n]%*c", command[comm_i]);
+		printf("result = %d\n", result);
+		printf("command: %s\n", command[comm_i]);
+		msg.type = command_to_type(command[comm_i], &filename);
 	}
 	
 	return 0;
