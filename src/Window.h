@@ -124,10 +124,11 @@ int sl_recv(Slider* this, packet* msg, int timeout_sec){
 	
 	while(seq_after(this->rseq, response.seq)){
 		int buf_n = rec_packet(this->sock, &response, this->buf, 0);
-	} // TODO max tries
+	}
 	
 	if(this->rseq != response.seq){
-		fprintf(stderr, "received a response with wrong seq\n");
+		fprintf(stderr, "expected seq=%d received $d\n", this->rseq, response.seq);
+		this->rseq = response.seq;
 	}
 	
 	this->rseq = seq_mod(this->rseq +1);

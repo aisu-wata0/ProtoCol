@@ -20,6 +20,8 @@
 #include <stdbool.h>
 #include <math.h>
 
+#define DEBUG_P false
+
 #define FAIL -1
 #define mod(X,Y) (((X) % (Y)) < 0 ? ((X) % (Y)) + (Y) : ((X) % (Y)))
 #define byte_log 1/log10(256)
@@ -131,10 +133,10 @@ packet deserialize(uint8_t* buf, int buf_n){
 	
 	if(msg.size > 0){
 		msg.parity = buf[2+msg.size];
-		printf("msg.parity %x calc parity %x\n", msg.parity, parity(msg));
+		if(DEBUG_P)printf("msg.parity %x calc parity %x\n", msg.parity, parity(msg));
 		msg.error = has_error(msg);
 		if(msg.error){
-			printf("deserialized message has detected error %x\n", has_error(msg));
+			if(DEBUG_P)printf("deserialized message has detected error %x\n", has_error(msg));
 		}
 	}
 	
