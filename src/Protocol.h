@@ -113,7 +113,13 @@ bool is_command(char* command, char* typ, char** target){
 	}
 	return false;
 }
-
+/**
+ * @brief Parses a string into a msg_type of a valid command with target
+ * pointing to after the arguments of the command
+ * @param command string
+ * @param target is not a copy of command, it points to the same memory
+ * @return 
+ */
 msg_type_t command_to_type(char* command, char** target){
 	trim(command);
 	
