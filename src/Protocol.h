@@ -19,6 +19,7 @@
 #include <linux/if.h>
 #include <stdbool.h>
 #include <math.h>
+#include <ctype.h>
 
 #define DEBUG_P false
 
@@ -46,19 +47,89 @@ typedef enum msg_type {
 	nack = 0xf,
 } msg_type_t;
 
-bool command_str(msg_type_t c, char* command){
-	switch(c){
-		case cd:
-			strcpy(command, "cd ");
-			break;
-		case ls:
-			strcpy(command, "ls ");
-			break;
-		default:
-			command[0] = '\0';
+char* trim(char *str){
+	if(str == NULL) { return NULL; }
+	if(str[0] == '\0') { return str; }
+
+
+	/* Move the front and back pointers to address the first non-whitespace
+	 * characters from each end. */
+	char* frontp = str;
+	while( isspace((unsigned char)*frontp) ){
+		frontp++;
+	}
+	
+	size_t len = strlen(str);
+	char* endp = str + len -1;
+	if( endp != frontp ){
+		while( isspace((unsigned char) *endp) && endp != frontp ) {
+			endp--;
+		}
+	}
+
+	if( str + len - 1 != endp ){
+		*(endp + 1) = '\0'; // trim end
+	} else if( frontp != str &&  endp == frontp ) {
+		*str = '\0'; // empty str
+	}
+
+	/* Shift the string so that it starts at str so that if it's dynamically
+	 * allocated, we can still free it on the returned pointer.  Note the reuse
+	 * of endp to mean the front of the string buffer now. */
+	endp = str;
+	if(frontp != str){
+		while(*frontp){
+			*endp++ = *frontp++;
+		}
+		*endp = '\0';
+	}
+
+	return str;
+}
+
+bool compare_str(char* x, char* y){
+	for(int i=0; i < strlen(y); i++){
+		if(x[i] != y[i]){
 			return false;
+		}
 	}
 	return true;
+}
+
+/**
+ * @brief if input string is a valid command
+ * target points to the start of the command parameters
+ */
+bool is_command(char* command, char* typ, char** target){
+	if(compare_str(command, typ)){
+		*target = &command[strlen(typ)];
+		return true;
+	}
+	return false;
+}
+
+msg_type_t command_to_type(char* command, char** target){
+	trim(command);
+	
+	if(is_command(command, "cd ", target)) return cd;
+	if(is_command(command, "ls", target)) return ls;
+	if(is_command(command, "get ", target)) return get;
+	if(is_command(command, "put ", target)) return put;
+	if(is_command(command, "exit", target)) return end;
+
+	return invalid;
+}
+
+char* concat_to(const char* s1, const char* s2, char** result){
+	const size_t len1 = strlen(s1);
+	const size_t len2 = strlen(s2);
+	
+	*result = malloc(len1+len2+1);//+1 for the null-terminator
+	if(*result == NULL) { fprintf(stderr, "ERROR: malloc returned NULL\n"); }
+	
+	memcpy(*result, s1, len1);
+	memcpy(*result+len1, s2, len2+1);//+1 to copy the null-terminator
+	return *result;
 }
 
 enum error_code {
@@ -121,8 +192,8 @@ packet deserialize(uint8_t* buf, int buf_n){
 	msg.error = false;
 	
 	msg.size = buf[0] >> 3;
-	msg.seq = (buf[0] & 0x3) | (buf[1] >> 5);
-	msg.type = (buf[1] & 0b00011111);
+	msg.seq = (buf[0] & 0x0b111) | (buf[1] >> 5);
+	msg.type = (buf[1] & 0b11111);
 	
 	if(buf_n < 2+msg.size){
 		fprintf(stderr, "received message buffer too small for said message size\n");
@@ -151,21 +222,22 @@ packet deserialize(uint8_t* buf, int buf_n){
  * @param buf buffer to put msg data
  * @return size of buffer containing msg
  */
-int serialize(packet msg, uint8_t** buf_p){
+int serialize(packet msg, uint8_t* buf){
 // sizesseq seqtypet datadata... paritypa
-	int buf_n;
-	buf_n = 3 + msg.size;
-	*buf_p = (uint8_t*)malloc(buf_n+1);
-	
-	uint8_t* buf = *buf_p;
+	int buf_n = 3 + msg.size;
 	
 	buf[0] = framing_bits;
-
+	// 00012345
 	buf[1] = msg.size << 3;
+	// 12345000 | 123456 >> 3
+	// 12345000 | 123
+	// 12345123
 	buf[1] = buf[1] | (msg.seq >> 3);
-	
+	// 00123456 << 5
 	buf[2] = msg.seq << 5;
+	// 45600000 | 00012345
 	buf[2] = buf[2] | msg.type;
+	// 45612345
 
 	memcpy(&(buf[3]), msg.data_p, msg.size);
 	
@@ -174,24 +246,18 @@ int serialize(packet msg, uint8_t** buf_p){
 		buf[buf_n-1] = parity(msg);
 	}
 	
+	if(true)printf("==== serializing msg.seq = %x == %x buf_seq", msg.seq, (buf[1] & 0x0b111) | (buf[2] >> 5));
 	return buf_n;
 }
 
-int send_msg(int sock, packet msg){
-	uint8_t* buf;
-	int buf_n;
-	
-	// DEBUG
-	buf_n = serialize(msg, &buf);
-	return send(sock, buf, buf_n, 0);
-}
-
 void print(packet msg){
-	printf("size=%x; seq=%x; type=%x\n", msg.size, msg.seq, msg.type);
+	printf("[%x] Type = %x; Size = %x;\n", msg.seq, msg.type, msg.size);
 	for(int i=0; i < msg.size; i++){
 		printf("%hhx ", msg.data_p[i]);
+	} printf(" Parity=%hhx; \tError=%x\n", parity(msg), msg.error);
+	for(int i=0; i < msg.size; i++){
+		printf("%s ", (char*)msg.data_p);
 	}
-	printf("parity=%hhx; \terror=%x", parity(msg), msg.error);
 	printf("\n");
 }
 
@@ -254,6 +320,11 @@ int frame_msg(uint8_t* buf, int buf_n){
 	return FAIL;
 }
 
+void set_data(packet* msg, uint64_t num){
+	msg->size = byte_len(num);
+	msg->data_p = malloc(msg->size);
+	*(uint64_t*)msg->data_p = num;
+}
 /**
  * @brief Receives a valid packet from raw socket
  * @param sock target socket
@@ -309,7 +380,6 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 
 	return buf_n;
 }
-
 /**
  * @brief Tries for a packet in raw socket, instant timeout
  * @param sock target socket
@@ -322,9 +392,8 @@ int try_packet(int sock, packet* msg_p, uint8_t* buf){
 	int saddr_len = sizeof(saddr);
 	
 	memset(buf, 0, BUF_MAX);
-	int buf_n = 0;
 	
-	buf_n = recvfrom(sock, buf, BUF_MAX, MSG_DONTWAIT, &saddr, (socklen_t *)&saddr_len);
+	int buf_n = recvfrom(sock, buf, BUF_MAX, MSG_DONTWAIT, &saddr, (socklen_t *)&saddr_len);
 	// receive a network packet and copy in to buffer
 	
 	if(buf[0] != framing_bits){
@@ -335,13 +404,37 @@ int try_packet(int sock, packet* msg_p, uint8_t* buf){
 
 	return buf_n;
 }
-
-void set_data(packet* msg, uint64_t num){
-	msg->size = byte_len(num);
-	msg->data_p = malloc(msg->size);
-	*(uint64_t*)msg->data_p = num;
+/**
+ * @brief Sends message to socket
+ * @param buf needs to be previously allocated
+ * @return send() return value
+ */
+int send_msg(int sock, packet msg, uint8_t* buf){
+	int buf_n = serialize(msg, buf);
+	return send(sock, buf, buf_n, 0);
 }
 
+bool msg_to_command(packet msg, char** command){
+	char* target = (char*)msg.data_p;
+	switch(msg.type){
+		case cd:
+			concat_to("cd ", target, command);
+			break;
+		case ls:
+			concat_to("ls ", target, command);
+			break;
+		case get:
+			concat_to("get ", target, command);
+			break;
+		case put:
+			concat_to("put ", target, command);
+			break;
+		default:
+			command[0] = '\0';
+			return false;
+	}
+	return true;
+}
 // DEBUG
 void endian_test(){
 	packet msg;
