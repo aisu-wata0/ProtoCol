@@ -71,7 +71,7 @@ packet next_packet(Slider* this, FILE* stream){
 	if(msg.size > 0){
 		msg.type = data;
 	} else {
-		printf("msg.size = fread returned %x bytes, assumed eof\n", msg.size);
+		if(DEBUG_W)printf("msg.size = fread returned %x bytes, assumed eof\n", msg.size);
 		msg.type = end;
 		msg.data_p = NULL;
 	}
@@ -104,46 +104,44 @@ void fill_window(Slider* this, int from, FILE* stream, bool* ended){
 			this->window.arr[i].type = invalid;
 			this->window.arr[i].seq = i_to_seq(&this->window, i);
 		}
-		// DEBUG
+		/*TEMP*/
 		if(this->window.arr[i].seq != i_to_seq(&this->window, i)){
-			printf("ERROR: seqs should be equal! %x != %x\n", this->window.arr[i].seq%0xf, i_to_seq(&this->window, i)%0xf);
+			if(DEBUG_W)fprintf(stderr,"ERROR: seqs should be equal! %x != %x\n", this->window.arr[i].seq%0xf, i_to_seq(&this->window, i)%0xf);
 			this->window.arr[i].seq = i_to_seq(&this->window, i);
-		}
+		}/**/
 		
 		i = w_mod(i+1);
 	} while (i != w_mod(w_end(&this->window) +1));
 }
 
 void set_sent(Window* this){
-	printf("setting sent >\n");
+	if(DEBUG_W)printf("Setting sent >\n");
 	int it = this->start;
 	do {
 		if(this->arr[it].type == invalid){
 			break;
 		}
-		if(this->arr[it].error){
-			this->arr[it].error = false;
-		}
+		this->arr[it].error = false;
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(this) +1));
 }
 
 void send_window(Slider* this){
-	printf("Sending window >\n");
+	if(DEBUG_W)printf("Sending window >\n");
 	int it = this->window.start;
 	do {
 		if(this->window.arr[it].type == invalid){
 			break;
 		}
 		if(this->window.arr[it].error){
-			print(this->window.arr[it]);
+			if(DEBUG_W)print(this->window.arr[it]);
 			send_msg(this->sock, this->window.arr[it]);
 		}
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
-	printf("> sent\n\n");
+	if(DEBUG_W)printf("> sent\n\n");
 }
 
 int handle_response(Window* this, packet response){
@@ -188,20 +186,19 @@ void send_data(Slider* this, FILE* stream){
 	fill_window(this, this->window.acc, stream, &ended);
 	
 	while(!ended){
-		print_window(this);
+		if(DEBUG_W)print_window(this);
 		
 		send_window(this);
 		/*DEBUG*/
 		// with timeout
-		int buf_n = sl_recv(this, &response, 1);
+		int buf_n = sl_recv(this, &response, TIMEOUT);
 		if(buf_n < 1){
-			printf("Timed out\n");
 			continue; // no response, send window again
 		}
 		/**
 		printf("Receive reply? ");
 		int reply;
-		if(scanf("%d", &reply) < 0) fprintf(stderr, "scan error\n");
+		if(scanf("%x", &reply) < 0) fprintf(stderr, "scan error\n");
 		if(reply < 1){
 			continue;
 		}
@@ -210,8 +207,8 @@ void send_data(Slider* this, FILE* stream){
 		
 		set_sent(&this->window);
 		
-		printf("handling response\n");
-		print(response);
+		if(DEBUG_W)printf("handling response\n");
+		if(DEBUG_W)print(response);
 		
 		fill = handle_response(&this->window, response);
 		
@@ -220,9 +217,9 @@ void send_data(Slider* this, FILE* stream){
 		}
 	}
 	
-	/*DEBUG*/
+	/*TEMP*/
 	if(this->sseq != seq_mod(w_back(&this->window).seq +1)){
-		printf("ERROR: seqs should be equal! %x != %x\n", this->sseq%0xf, seq_mod(w_back(&this->window).seq +1)%0xf);
+		fprintf(stderr, "ERROR: seqs should be equal! %x != %x\n", this->sseq%0xf, seq_mod(w_back(&this->window).seq +1)%0xf);
 	}/**/
 }
 

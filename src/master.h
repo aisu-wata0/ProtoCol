@@ -30,7 +30,8 @@ int master(char* device){
 	Slider slider;
 	slider_init(&slider, device);
 	
-	packet msg = sl_recv(&slider);
+	packet msg;
+	sl_recv(&slider, &msg, 0);
 	
 	print(msg);
 	
