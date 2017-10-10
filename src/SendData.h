@@ -205,24 +205,7 @@ void send_data(Slider* this, FILE* stream){
 		if(reply < 1){
 			continue;
 		}
-		int result;
-		printf("enter seq = ");
-		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-		response.seq = result;
-		
-		printf("enter type = ");
-		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-		response.type = result;
-		
-		response.size = 1;
-		response.data_p = (uint8_t*)malloc(1);
-		printf("data_p[0] = ");
-		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-		response.data_p[0] = result;
-		
-		printf("error = ");
-		if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
-		response.error = result;
+		read_msg(&response);
 		/**/
 		
 		set_sent(&this->window);
