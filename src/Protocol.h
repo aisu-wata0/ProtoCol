@@ -47,6 +47,12 @@ typedef enum msg_type {
 	nack = 0xf,
 } msg_type_t;
 
+typedef enum err_code {
+	inex = 0x0,
+	acess = 0x1,
+	space = 0x1,
+} err_code_t;
+
 char* trim(char *str){
 	if(str == NULL) { return NULL; }
 	if(str[0] == '\0') { return str; }
