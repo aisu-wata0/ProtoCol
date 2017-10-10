@@ -122,6 +122,8 @@ int sl_recv(Slider* this, packet* msg, int timeout_sec){
 	}
 	
 	while(seq_after(this->rseq, msg->seq)){
+		if(DEBUG_W)printf("msg.seq too low, discarted: ");
+		if(DEBUG_W)print(*msg);
 		rec_packet(this->sock, msg, this->buf, 0);
 	}
 	
