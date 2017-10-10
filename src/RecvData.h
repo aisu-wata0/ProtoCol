@@ -234,6 +234,7 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 		
 		write_to_file(this, stream, &rec_size, &ended);
 		
+		// was it a timout? same window? or some other thing
 		respond(this);
 		
 		move_window(this);
