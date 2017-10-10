@@ -44,6 +44,7 @@ int master(char* device){
 	result = scanf("%[^\n]%*c", command[comm_i]);
 	printf("result = %d\n", result);
 	printf("command: %s\n", command[comm_i]);
+	// filename is not a copy of command, it points to the same memory
 	msg.type = command_to_type(command[comm_i], &filename);
 	
 	while(msg.type != end){
@@ -62,6 +63,7 @@ int master(char* device){
 			result = scanf("%[^\n]%*c", command[comm_i]);
 			printf("result = %d\n", result);
 			printf("command: %s\n", command[comm_i]);
+			// filename is not a copy of command, it points to the same memory
 			msg.type = command_to_type(command[comm_i], &filename);
 			continue;
 		}
@@ -95,6 +97,7 @@ int master(char* device){
 		result = scanf("%[^\n]%*c", command[comm_i]);
 		printf("result = %d\n", result);
 		printf("command: %s\n", command[comm_i]);
+		// filename is not a copy of command, it points to the same memory
 		msg.type = command_to_type(command[comm_i], &filename);
 	}
 	
