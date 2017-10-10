@@ -11,7 +11,7 @@
 #include "Socket.h"
 #include "SlidingWindow.h"
 
-void process(Slider* slider, packet msg){
+bool process(Slider* slider, packet msg){
 	char* command;
 	msg_to_command(msg, &command);
 	printf("%s\n", command);
@@ -20,36 +20,38 @@ void process(Slider* slider, packet msg){
 	if(msg.type == get){
 		FILE* stream = fopen((char*)msg.data_p,"rb");
 		if(stream == NULL){
-			msg.type = error;
-			msg.size = 0;
-			// TODO set_data(&msg, error_code); 
-			sl_send(slider, &msg);
-		}
-		
-		struct stat sb;
-		if (stat((char*)msg.data_p, &sb) == -1) {
-			// fprintf(stderr, "file byte count with stat() error\n");
-			msg.type = error;
-			msg.size = 0;
-			// TODO set_data(&msg, error_code); 
-			sl_send(slider, &msg);
+			fprintf(stderr, "FAIL: fopen() error %d\n", errno);
+			set_data(&msg, acess); // TODO is this code right?
 		} else {
-			msg.type = tam;
-			set_data(&msg, sb.st_size);
-			
-			printf("file size = %lu bytes\n", *(uint64_t*)msg.data_p);
-			
-			printf("> sending\n");
-			print(msg);
-			packet response = sl_talk(slider, msg);
-			printf("< response\n");
-			print(response);
-			
-			if(response.type == ok){
-				send_data(slider, stream);
+			struct stat sb;
+			if (stat((char*)msg.data_p, &sb) == -1) {
+				fprintf(stderr, "FAIL: stat() error %d\n", errno);
+				set_data(&msg, acess); // TODO use errno to set error_code
+			} else {
+				msg.type = tam;
+				set_data(&msg, sb.st_size);
+				
+				printf("file size = %lu bytes\n", *(uint64_t*)msg.data_p);
+				
+				printf("> sending\n");
+				print(msg);
+				packet response = sl_talk(slider, msg);
+				printf("< response\n");
+				print(response);
+				
+				if(response.type == ok){
+					send_data(slider, stream);
+					return true;
+				}
+				return false;
 			}
 		}
 	}
+	
+	msg.type = error;
+	msg.size = 0;
+	sl_send(slider, &msg);
+	return false;
 }
 
 int master(char* device){
@@ -61,7 +63,7 @@ int master(char* device){
 	while(true){
 		sl_recv(&slider, &msg, 0);
 		if(DEBUG_W)printf("Received request: ");
-		print(msg);
+		if(DEBUG_W)print(msg);
 		
 		process(&slider, msg);
 	}

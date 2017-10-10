@@ -27,9 +27,9 @@ int dorei(char* device){
 	packet msg;
 	
 	scanf("%[^\n]%*c", command);
+	msg.type = command_to_type(command, &filename);
 	
-	while(strcmp(command, "exit") != 0){
-		msg.type = command_to_type(command, &filename);
+	while(msg.type != end){
 		msg.size = strlen(filename);
 		msg.data_p = malloc(msg.size);
 		memcpy(msg.data_p, filename, msg.size);
@@ -61,6 +61,7 @@ int dorei(char* device){
 		
 		
 		scanf("%[^\n]%*c", command);
+		msg.type = command_to_type(command, &filename);
 	}
 	
 	return 0;
