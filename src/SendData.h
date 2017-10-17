@@ -229,6 +229,8 @@ void send_data(Slider* this, FILE* stream){
 	if(this->sseq != seq_mod(w_back(&this->window).seq +1)){
 		fprintf(stderr, "ERROR: seqs should be equal! %x != %x\n", this->sseq%0xf, seq_mod(w_back(&this->window).seq +1)%0xf);
 	}/**/
+	
+	fclose(stream);
 }
 
 #endif
