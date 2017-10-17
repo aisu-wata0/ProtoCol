@@ -181,7 +181,7 @@ int handle_response(Window* this, packet response){
 /**
  * @brief Sends data from file stream until EOF
  */
-void send_data(Slider* this, FILE* stream){
+int send_data(Slider* this, FILE* stream){
 	packet response;
 	w_init(&this->window, this->rseq);
 	
@@ -201,7 +201,7 @@ void send_data(Slider* this, FILE* stream){
 		// with timeout
 		int buf_n = sl_recv(this, &response, TIMEOUT);
 		if(buf_n < 1){
-			continue; // no response, send window again
+			continue; // timeout, send window again
 		}
 		/**
 		printf("Receive reply? ");
@@ -212,7 +212,9 @@ void send_data(Slider* this, FILE* stream){
 		}
 		read_msg(&response);
 		/**/
-		
+		if((response.type != ack) && (response.type != nack)){
+			return true;
+		}
 		set_sent(&this->window);
 		
 		if(DEBUG_W)printf("handling response\n");
@@ -230,7 +232,7 @@ void send_data(Slider* this, FILE* stream){
 		fprintf(stderr, "ERROR: seqs should be equal! %x != %x\n", this->sseq%0xf, seq_mod(w_back(&this->window).seq +1)%0xf);
 	}/**/
 	
-	fclose(stream);
+	return true;
 }
 
 #endif

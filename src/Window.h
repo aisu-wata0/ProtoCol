@@ -175,7 +175,6 @@ packet sl_talk(Slider* this, packet msg){
 			if(*(uint64_t*)response.data_p != msg.seq){
 				fprintf(stderr, "response nacked different sent seq\n");
 			}
-			set_seq(this, &msg);
 			continue; // send again
 		}
 		

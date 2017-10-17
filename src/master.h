@@ -80,13 +80,21 @@ int master(char* device){
 			
 			int file_size_B = *(uint64_t*)response.data_p;
 			
-//			if(ok)// TODO has space on current dir
+//			if(has space on current dir){ TODO
+				msg = NIL_MSG;
+				msg.type = ok;
+				sl_send(&slider, &msg);
 				rec_bytes = receive_data(&slider, stream, file_size_B);
-			printf("\nbytes transfered = %lu\n", rec_bytes);
-			
+				if(rec_bytes > 0){
+					printf("\nbytes transfered = %lu\n", rec_bytes);
+				} else {
+					printf("receive data failed: wrong response. Try again\n");
+				}
+//			} TODO
 			fclose(stream);
 		} else {
-			// TODO: if error, print on screen appropriately
+			// TODO: if error, print on screen appropriately for each type of error
+			// might not be error, just wrong type of response
 			printf("command failed on server\n");
 		}
 		
