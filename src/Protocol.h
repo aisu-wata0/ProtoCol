@@ -145,11 +145,12 @@ char* concat_to(const char* s1, const char* s2, char** result){
 	const size_t len1 = strlen(s1);
 	const size_t len2 = strlen(s2);
 	
-	*result = malloc(len1+len2+1);//+1 for the null-terminator
+	*result = malloc(len1+len2+1); // +1 null-terminator
 	if(*result == NULL) { fprintf(stderr, "ERROR: malloc returned NULL\n"); }
 	
 	memcpy(*result, s1, len1);
-	memcpy(*result+len1, s2, len2+1);//+1 to copy the null-terminator
+	memcpy(*result+len1, s2, len2+1); // +1 to copy the null-terminator
+	
 	return *result;
 }
 
@@ -217,7 +218,7 @@ packet deserialize(uint8_t* buf, int buf_n){
 	msg.error = false;
 	
 	msg.size = buf[0] >> 3;
-	msg.seq = ((buf[0] & 0x0b111) << 3) | (buf[1] >> 5);
+	msg.seq = ((buf[0] & 0b111) << 3) | (buf[1] >> 5);
 	msg.type = (buf[1] & 0b11111);
 	
 	if(buf_n < 2+msg.size){
@@ -272,7 +273,10 @@ int serialize(packet msg, uint8_t* buf){
 	}
 	// TMP
 	if(true)printf("=== serializing %hhx %hhx %hhx \t", buf[0], buf[1], buf[2]);
-	if(true)printf("msg.seq %x == %x buf_seq\n", msg.seq, ((buf[1] & 0x0b111) << 3) | (buf[2] >> 5));
+	if(true)printf("msg.seq %x == %x buf_seq\n", msg.seq, ((buf[1] & 0b111) << 3) | (buf[2] >> 5));
+	if(msg.seq != ( ((buf[1] & 0b111) << 3) | (buf[2] >> 5) ) ){
+		if(true)printf("((buf[1] & 0b111) << 3) = %x\n(buf[2] >> 5) = %x\n", ((buf[1] & 0b111) << 3), (buf[2] >> 5));
+	}
 	return buf_n;
 }
 

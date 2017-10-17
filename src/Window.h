@@ -120,12 +120,12 @@ void send_number(Slider* this, msg_type_t typ, uint64_t num){
 int sl_recv(Slider* this, packet* msg, int timeout_sec){
 	int buf_n = rec_packet(this->sock, msg, this->buf, timeout_sec);
 	if(buf_n < 1){
-			if(DEBUG_W)printf("Timed out.\n");
+		if(DEBUG_W)printf("Timed out.\n");
 		return buf_n;
 	}
 	
 	while(seq_after(this->rseq, msg->seq)){
-		if(DEBUG_W)printf("msg.seq too low, discarted: ");
+		if(DEBUG_W)printf("msg.seq too low, this->rseq=%hhx, discarted: ", this->rseq);
 		if(DEBUG_W)print(*msg);
 		rec_packet(this->sock, msg, this->buf, 0);
 	}
@@ -183,7 +183,7 @@ packet sl_talk(Slider* this, packet msg){
 	}
 	
 	if(DEBUG_W)printf("< Response:\n");
-	if(DEBUG_W)print(msg);
+	if(DEBUG_W)print(response);
 	
 	return response;
 }

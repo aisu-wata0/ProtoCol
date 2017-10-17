@@ -32,13 +32,8 @@ bool process(Slider* slider, packet msg){
 				set_data(&msg, sb.st_size);
 				
 				printf("file size = %lu bytes\n", *(uint64_t*)msg.data_p);
-				
-				printf("> sending\n");
-				print(msg);
+				// TODO: use timeout, don't use sl_talk, might not rec responses
 				packet response = sl_talk(slider, msg);
-				printf("< response\n");
-				print(response);
-				
 				if(response.type == ok){
 					send_data(slider, stream);
 					return true;

@@ -21,7 +21,6 @@ void parse(packet msg){
 int master(char* device){
 	Slider slider;
 	slider_init(&slider, device);
-	slider.sseq = 7;
 	uint64_t rec_bytes;
 	char command[COMMAND_HIST_SIZE][COMMAND_BUF_SIZE];
 	char* filename;
@@ -48,14 +47,13 @@ int master(char* device){
 	msg.type = command_to_type(command[comm_i], &filename);
 	
 	while(msg.type != end){
-		msg.size = strlen(filename);
+		msg.size = strlen(filename)+1; // +1 null-terminator
 		msg.data_p = malloc(msg.size);
 		memcpy(msg.data_p, filename, msg.size);
 		
 		/*DEBUG*/
 		sl_send(&slider, &msg);
 		result = sl_recv(&slider, &response, TIMEOUT);
-		printf("result = %d\n", result);
 		if(result < 1){ // timed out
 			curr_comm = mod(curr_comm +1, COMMAND_HIST_SIZE); 
 			comm_i = curr_comm;
