@@ -31,9 +31,11 @@ int master(char* device){
 	int curr_comm = 0;
 	int comm_i = 0;
 	
-	// TODO make this a function
-	printf(" $\n"); // TODO print current remote dir and local dir
+	// TODO: first thing when starting, send "cd ." command until you get a response
+	// server will send on the data_p the dir after the cd command (current dir on server)
+	// curr dir will be printed on the console (function below)
 	
+	// TODO make this a function
 	/* TODO change scanf to getch
 	 * read char by char and append them to command, if its \n, append "\0"
 	 * goal: if up arrow pressed, printf("\33[2K\r"); erases current written line
@@ -41,12 +43,12 @@ int master(char* device){
 	 * comm_i = mod(comm_i -1, COMMAND_HIST_SIZE)
 	 * printf("%s", command[comm_i]);
 	 * https://stackoverflow.com/questions/10463201/getch-and-arrow-codes */
+	printf(" $\n"); // TODO print current remote dir
 	result = scanf("%[^\n]%*c", command[comm_i]);
 	printf("result = %d\n", result);
 	printf("command: %s\n", command[comm_i]);
 	// filename is not a copy of command, it points to the same memory
 	msg.type = command_to_type(command[comm_i], &filename);
-	
 	while(msg.type != end){
 		msg.size = strlen(filename);
 		msg.data_p = malloc(msg.size);
@@ -55,7 +57,6 @@ int master(char* device){
 		/*DEBUG*/
 		sl_send(&slider, &msg);
 		result = sl_recv(&slider, &response, TIMEOUT);
-		printf("result = %d\n", result);
 		if(result < 1){ // timed out
 			curr_comm = mod(curr_comm +1, COMMAND_HIST_SIZE); 
 			comm_i = curr_comm;

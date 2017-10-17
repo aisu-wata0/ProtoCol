@@ -80,8 +80,7 @@ packet next_packet(Slider* this, FILE* stream){
 /**
  * @brief fill window from to w_end, from always gets filled
  */
-void fill_window(Slider* this, int from, FILE* stream, bool* ended){
-	static bool eof = false;
+void fill_window(Slider* this, int from, FILE* stream, bool* ended, bool* eof){
 	// 3 4 5 6	receives nack 5, given: start = 0; [0].seq == 3
 	// 7 8 5 6	start = 2; from 0 to <start, new packets into window
 	int i = from;
@@ -94,10 +93,10 @@ void fill_window(Slider* this, int from, FILE* stream, bool* ended){
 			break;
 		}
 		// queue next
-		if( ! eof){
+		if( ! *eof){
 			this->window.arr[i] = next_packet(this, stream);
 			if(this->window.arr[i].type == end){
-				eof = true;
+				*eof = true;
 			}
 		} else { // no message to fill in
 			this->window.arr[i].type = invalid;
@@ -190,8 +189,9 @@ void send_data(Slider* this, FILE* stream){
 	
 	bool fill;
 	bool ended = false;
+	bool eof = false;
 	// startup
-	fill_window(this, this->window.acc, stream, &ended);
+	fill_window(this, this->window.acc, stream, &ended, &eof);
 	
 	while(!ended){
 		if(DEBUG_W)print_window(this);
@@ -221,7 +221,7 @@ void send_data(Slider* this, FILE* stream){
 		fill = handle_response(&this->window, response);
 		
 		if(fill){
-			fill_window(this, this->window.acc, stream, &ended);
+			fill_window(this, this->window.acc, stream, &ended, &eof);
 		}
 	}
 	
