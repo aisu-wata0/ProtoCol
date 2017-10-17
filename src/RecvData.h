@@ -107,7 +107,7 @@ int handle_msg(Slider* this, packet msg){
  * @param rec_size is incremented by the size of the msgs written
  * @param ended setted to true if reached file end msg
  */
-void write_to_file(Slider* this, FILE* stream, uint64_t* rec_size, bool* ended){
+void write_to_file(Slider* this, FILE* stream, long* rec_size, bool* ended){
 	int msgs_to_write = seq_mod( last_acc(&this->window).seq +1 - w_front(&this->window).seq );
 	// has at least one msg to write
 	if( msgs_to_write > 0 ){
@@ -181,40 +181,46 @@ void move_window(Slider* this){
  * @param data_size to receive
  * @return rec_size: size of the data received
  */
-uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
+long receive_data(Slider* this, FILE* stream, long data_size){
 	packet msg;
 	bool ended = false;
-	uint64_t rec_size = 0;
+	long rec_size = 0;
 	w_init(&this->window, this->rseq);
 	
 	int buf_size;
-	
-	msg.type = ok;
-	msg.size = 0;
-	
-	/*DEBUG*/
-	msg = sl_talk(this, msg);
-	/**
-	read_msg(&msg);
-	/**/
-	
-	buf_size = msg.size;
-	
-	if(msg.type != data){
-		fprintf(stderr, "received wrong type on response\n");
-	}
+
+//	msg.type = ok;
+//	msg.size = 0;
+//	
+//	/*DEBUG*/
+//	msg = sl_talk(this, msg);
+//	
+//	sl_send(this, &msg);
+//	result = sl_recv(this, &msg, TIMEOUT);
+//	/**
+//	read_msg(&msg);
+//	/**/
+//	
+//	buf_size = msg.size;
+//	
+//	if(msg.type != data){
+//		fprintf(stderr, "received wrong type on response\n");
+//	}
 
 	if(DEBUG_W)print_slider(this);
 	
 	while(!ended){
 		/*DEBUG*/
-		if(msg.type == invalid){
-			buf_size = rec_packet(this->sock, &msg, this->buf, 0);
-		}
+		////if(msg.type == invalid){
+		buf_size = rec_packet(this->sock, &msg, this->buf, 0);
+		////}
 		/**
 		buf_size = 1;
 		/**/
 		while(buf_size > 0){
+			if((msg.type != data) && (msg.type != end)){
+				return -1;
+			}
 			/*DEBUG*
 			read_msg(&msg);
 			/**/

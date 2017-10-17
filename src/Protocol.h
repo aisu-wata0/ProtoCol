@@ -191,6 +191,7 @@ typedef struct {
 } packet;
 // framefra(8) sizes(5) seq.seq(6) typet(5) data... parity(8)
 // frame sizeseq seqtypet
+const packet NIL_MSG = { 0, 0, 0xb, NULL, 0, 0 };
 /**
  * @brief calculates parity of message from its data
  * @param msg
