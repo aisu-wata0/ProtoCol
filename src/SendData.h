@@ -112,7 +112,9 @@ void fill_window(Slider* this, int from, FILE* stream, bool* ended){
 		i = w_mod(i+1);
 	} while (i != w_mod(w_end(&this->window) +1));
 }
-
+/**
+ * @brief sets window messages as sent
+ */
 void set_sent(Window* this){
 	if(DEBUG_W)printf("Setting sent >\n");
 	int it = this->start;
@@ -125,7 +127,9 @@ void set_sent(Window* this){
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(this) +1));
 }
-
+/**
+ * @brief sends unsent messages
+ */
 void send_window(Slider* this){
 	if(DEBUG_W)printf("Sending window >\n");
 	int it = this->window.start;
@@ -142,7 +146,10 @@ void send_window(Slider* this){
 	} while(it != w_mod(w_end(&this->window) +1));
 	if(DEBUG_W)printf("> sent\n\n");
 }
-
+/**
+ * @brief handles acks and nacks, setting the start of the window and nacked messages as unsent
+ * @return true if window needs to be filled with new messages
+ */
 int handle_response(Window* this, packet response){
 	this->acc = this->start;
 	int response_seq = response.data_p[0];
@@ -172,7 +179,9 @@ int handle_response(Window* this, packet response){
 	
 	return true;
 }
-
+/**
+ * @brief Sends data from file stream until EOF
+ */
 void send_data(Slider* this, FILE* stream){
 	packet response;
 	w_init(&this->window, this->rseq);

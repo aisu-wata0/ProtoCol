@@ -102,7 +102,11 @@ int handle_msg(Slider* this, packet msg){
 	
 	return false;
 }
-
+/**
+ * @brief writes data from received accepted messages to file stream
+ * @param rec_size is incremented by the size of the msgs written
+ * @param ended setted to true if reached file end msg
+ */
 void write_to_file(Slider* this, FILE* stream, uint64_t* rec_size, bool* ended){
 	int msgs_to_write = seq_mod( last_acc(&this->window).seq +1 - w_front(&this->window).seq );
 	// has at least one msg to write
@@ -128,7 +132,9 @@ void write_to_file(Slider* this, FILE* stream, uint64_t* rec_size, bool* ended){
 		if(DEBUG_W)printf("]\n");
 	}
 }
-
+/**
+ * @brief gives apropriate response to sender about the current window
+ */
 void respond(Slider* this){
 	if(DEBUG_W)printf("Response ");
 	if((w_back(&this->window).seq == last_acc(&this->window).seq) || (last_acc(&this->window).type == end)){
@@ -139,7 +145,9 @@ void respond(Slider* this){
 		send_number(this, nack, first_err(&this->window).seq);
 	}
 }
-
+/**
+ * @brief moves window to start after last accepted message
+ */
 void move_window(Slider* this){
 	// 3 4 5 6	front is [0]=3, acc is [2]=5
 	// 7 8 9 6	[0]=5+1 [1]=5+2 [2]=5+3
@@ -167,7 +175,12 @@ void move_window(Slider* this){
 		this->window.start = w_mod(this->window.acc +1);
 	}
 }
-
+/**
+ * @brief Sends ok message, receives data and writes it to file stream, stops when rec_size >= data_size
+ * @param stream to write data into
+ * @param data_size to receive
+ * @return rec_size: size of the data received
+ */
 uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 	packet msg;
 	bool ended = false;
@@ -193,7 +206,7 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 
 	if(DEBUG_W)print_slider(this);
 	
-	while(!ended){
+	while(!ended && (rec_size < data_size)){
 		/*DEBUG*/
 		if(msg.type == invalid){
 			buf_size = rec_packet(this->sock, &msg, this->buf, 0);
@@ -241,5 +254,6 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 	this->rseq = seq_mod(last_acc(&this->window).seq +1);
 	return rec_size;
 }
+
 
 #endif

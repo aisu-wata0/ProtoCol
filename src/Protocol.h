@@ -53,6 +53,9 @@ typedef enum err_code {
 	space = 0x1,
 } err_code_t;
 
+/**
+ * @brief trims spaces from start and end of string, doesn't copy
+ */
 char* trim(char *str){
 	if(str == NULL) { return NULL; }
 	if(str[0] == '\0') { return str; }
@@ -93,7 +96,10 @@ char* trim(char *str){
 	return str;
 }
 
-bool compare_str(char* x, char* y){
+/**
+ * @brief returns true if x has y at the start of the string
+ */
+bool contains_at_start(char* x, char* y){
 	for(int i=0; i < strlen(y); i++){
 		if(x[i] != y[i]){
 			return false;
@@ -107,7 +113,7 @@ bool compare_str(char* x, char* y){
  * target points to the start of the command parameters
  */
 bool is_command(char* command, char* typ, char** target){
-	if(compare_str(command, typ)){
+	if(contains_at_start(command, typ)){
 		*target = &command[strlen(typ)];
 		return true;
 	}
@@ -132,6 +138,9 @@ msg_type_t command_to_type(char* command, char** target){
 	return invalid;
 }
 
+/**
+ * @brief copies s1 and s2 to result, allocates necessary memory
+ */
 char* concat_to(const char* s1, const char* s2, char** result){
 	const size_t len1 = strlen(s1);
 	const size_t len2 = strlen(s2);
@@ -181,7 +190,11 @@ typedef struct {
 } packet;
 // framefra(8) sizes(5) seq.seq(6) typet(5) data... parity(8)
 // frame sizeseq seqtypet
-
+/**
+ * @brief calculates parity of message from its data
+ * @param msg
+ * @return 
+ */
 uint8_t parity(packet msg){
 	uint8_t par = 0x00;
 	for(int i = 0; i < msg.size; i++){
@@ -424,7 +437,11 @@ int send_msg(int sock, packet msg, uint8_t* buf){
 	int buf_n = serialize(msg, buf);
 	return send(sock, buf, buf_n, 0);
 }
-
+/**
+ * @brief makes a string of command from msg
+ * @param command is allocated memory
+ * @return false if its not a command
+ */
 bool msg_to_command(packet msg, char** command){
 	char* target = (char*)msg.data_p;
 	switch(msg.type){
@@ -441,12 +458,14 @@ bool msg_to_command(packet msg, char** command){
 			concat_to("put ", target, command);
 			break;
 		default:
-			command[0] = '\0';
 			return false;
 	}
 	return true;
 }
-// DEBUG
+
+/**
+ * @brief prints how numbers are stored in memory as bytes
+ */
 void endian_test(){
 	packet msg;
 	msg.data_p = NULL;
@@ -474,7 +493,9 @@ void endian_test(){
 		seq <<= 1;
 	}
 }
-
+/**
+ * @brief reads a message from stdin, prompting in stdout
+ */
 void read_msg(packet* msg){
 	printf("Receiving Packet ");
 	int result;
