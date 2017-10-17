@@ -206,7 +206,7 @@ uint64_t receive_data(Slider* this, FILE* stream, uint64_t data_size){
 
 	if(DEBUG_W)print_slider(this);
 	
-	while(!ended && (rec_size < data_size)){
+	while(!ended){
 		/*DEBUG*/
 		if(msg.type == invalid){
 			buf_size = rec_packet(this->sock, &msg, this->buf, 0);

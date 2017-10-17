@@ -81,7 +81,6 @@ packet next_packet(Slider* this, FILE* stream){
  * @brief fill window from to w_end, from always gets filled
  */
 void fill_window(Slider* this, int from, FILE* stream, bool* ended){
-	static bool eof = false;
 	// 3 4 5 6	receives nack 5, given: start = 0; [0].seq == 3
 	// 7 8 5 6	start = 2; from 0 to <start, new packets into window
 	int i = from;
@@ -94,11 +93,8 @@ void fill_window(Slider* this, int from, FILE* stream, bool* ended){
 			break;
 		}
 		// queue next
-		if( ! eof){
+		if(! feof(stream)){
 			this->window.arr[i] = next_packet(this, stream);
-			if(this->window.arr[i].type == end){
-				eof = true;
-			}
 		} else { // no message to fill in
 			this->window.arr[i].type = invalid;
 			this->window.arr[i].seq = i_to_seq(&this->window, i);
@@ -229,6 +225,8 @@ void send_data(Slider* this, FILE* stream){
 	if(this->sseq != seq_mod(w_back(&this->window).seq +1)){
 		fprintf(stderr, "ERROR: seqs should be equal! %x != %x\n", this->sseq%0xf, seq_mod(w_back(&this->window).seq +1)%0xf);
 	}/**/
+	
+	fclose(stream);
 }
 
 #endif
