@@ -141,17 +141,18 @@ msg_type_t command_to_type(char* command, char** target){
 /**
  * @brief copies s1 and s2 to result, allocates necessary memory
  */
-char* concat_to(const char* s1, const char* s2, char** result){
+char* concat_to(const char* s1, const char* s2){
+	char* result;
 	const size_t len1 = strlen(s1);
 	const size_t len2 = strlen(s2);
 	
-	*result = malloc(len1+len2+1); // +1 null-terminator
-	if(*result == NULL) { fprintf(stderr, "ERROR: malloc returned NULL\n"); }
+	result = malloc(len1+len2+1); // +1 null-terminator
+	if(result == NULL) { fprintf(stderr, "ERROR: malloc returned NULL\n"); }
 	
-	memcpy(*result, s1, len1);
-	memcpy(*result+len1, s2, len2+1); // +1 to copy the null-terminator
+	memcpy(result, s1, len1);
+	memcpy(result+len1, s2, len2+1); // +1 to copy the null-terminator
 	
-	return *result;
+	return result;
 }
 
 enum error_code {
@@ -177,6 +178,12 @@ enum error_code {
 // 1 should be after 0
 // 00 01	1
 #define seq_after(X,Y) ((((X)-(Y)) < -(seq_max+1)/2) || (((X)-(Y)) > 0))
+//#define seq_after(3c,0) (((3c -0) < -32) || ((3c -0) > 0)) // should be false, but its true
+
+//#define seq_after(3c,3d) (((3c ) < -20+3d) || ((3c -3d) > 0))
+//
+//#define seq_after(3d,3c) (((3d) < -20+3c) || ((3d -3c) > 0))
+
 #define seq_mod(X) mod((X),(seq_max+1))
 
 #define BUF_MAX (4 + data_max)
@@ -451,16 +458,16 @@ bool msg_to_command(packet msg, char** command){
 	char* target = (char*)msg.data_p;
 	switch(msg.type){
 		case cd:
-			concat_to("cd ", target, command);
+			*command = concat_to("cd ", target);
 			break;
 		case ls:
-			concat_to("ls ", target, command);
+			*command = concat_to("ls ", target);
 			break;
 		case get:
-			concat_to("get ", target, command);
+			*command = concat_to("get ", target);
 			break;
 		case put:
-			concat_to("put ", target, command);
+			*command = concat_to("put ", target);
 			break;
 		default:
 			return false;

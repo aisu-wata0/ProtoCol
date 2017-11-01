@@ -26,7 +26,7 @@ void print_slider(Slider* this){
 		} else {
 			printf("+");
 		}
-		printf("%x", this->window.arr[it].seq % 0xf);
+		printf("%x", this->window.arr[it].seq);
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
@@ -35,7 +35,7 @@ void print_slider(Slider* this){
 	printf("type     ");
 	it = this->window.start;
 	do{
-		printf(" %x", this->window.arr[it].type % 0xf);
+		printf(" %x", this->window.arr[it].type);
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
