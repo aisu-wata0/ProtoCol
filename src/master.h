@@ -29,6 +29,7 @@ int master(char* device){
 	int result;
 	int curr_comm = 0;
 	int comm_i = 0;
+	char fout[COMMAND_BUF_SIZE];
 	
 	// TODO: first thing when starting, send "cd ." command until you get a response
 	// server will send on the data_p the dir after the cd command (current dir on server)
@@ -49,6 +50,7 @@ int master(char* device){
 	// filename is not a copy of command, it points to the same memory
 	msg.type = command_to_type(command[comm_i], &filename);
 	while(msg.type != end){
+		// check if type is invalid
 		msg.size = strlen(filename)+1; // +1 null-terminator
 		msg.data_p = malloc(msg.size);
 		memcpy(msg.data_p, filename, msg.size);
@@ -76,7 +78,9 @@ int master(char* device){
 		print(response);
 		
 		if(response.type == tam){
-			FILE* stream = fopen("IO/out.txt","wb");
+			memcpy(fout, msg.data_p, msg.size);
+			strcat(fout, ".out");
+			FILE* stream = fopen(fout, "wb");
 			
 			int file_size_B = *(uint64_t*)response.data_p;
 			
