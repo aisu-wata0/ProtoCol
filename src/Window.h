@@ -9,6 +9,11 @@
 
 #define window_size 3
 #define w_mod(X) mod((X),(window_size))
+// Given a Y, Xs up until (seq_max/2 -windowSize/2)
+// are after Y
+#define seq_after(X,Y) \
+(( ((X)-(Y)) < (-seq_max/2 -window_size/2) ) \
+|| ( (((X)-(Y)) > 0) && ((X)-(Y) < (seq_max/2 -window_size/2)) ))
 
 typedef struct {
 	packet arr[window_size];

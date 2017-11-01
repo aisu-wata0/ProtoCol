@@ -173,17 +173,6 @@ enum error_code {
 
 #define seq_max ((0x1 << seq_b)-1) // (2^size_b)-1 maximum size of seq
 
-// if mod is 64, 00 should be after 63
-// 63 00	-63 < -32
-// 1 should be after 0
-// 00 01	1
-#define seq_after(X,Y) ((((X)-(Y)) < -(seq_max+1)/2) || (((X)-(Y)) > 0))
-//#define seq_after(3c,0) (((3c -0) < -32) || ((3c -0) > 0)) // should be false, but its true
-
-//#define seq_after(3c,3d) (((3c ) < -20+3d) || ((3c -3d) > 0))
-//
-//#define seq_after(3d,3c) (((3d) < -20+3c) || ((3d -3c) > 0))
-
 #define seq_mod(X) mod((X),(seq_max+1))
 
 #define BUF_MAX (4 + data_max)
