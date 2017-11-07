@@ -10,7 +10,7 @@ OBJECTS := $(addprefix $(BUILDDIR)/, $(SRCNAMES:%.c=%.o))
 SRCS := $(addprefix $(SRCDIR)/, $(SRCNAMES))
 
 # libs to include
-LIBS =
+LIBS = -lm
 
 # warnings and flags
 WARN = -Wall
@@ -29,9 +29,9 @@ doc:
 	doxygen doxyconfig
 
 set_debug:
-	$(eval FLAGS = -O0 -g $(WARN))
+	$(eval FLAGS = -O0 -g $(WARN) $(WNO))
 
-debug: set_debug all
+debug: set_debug clean all
 
 rebuild: clean all
 
