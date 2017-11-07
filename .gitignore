@@ -1,3 +1,9 @@
+Release/
+Debug/
+ProtoCol
+ProtoCol.mk
+ProtoCol.txt
+
 # Prerequisites
 *.d
 
