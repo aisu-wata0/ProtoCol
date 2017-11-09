@@ -12,6 +12,8 @@
 #include "SlidingWindow.h"
 
 bool process(Slider* slider, packet msg){
+	chkMsgSeq(slider, msg);
+	
 	packet my_response = NIL_MSG;
 	FILE* stream;
 	char* command;
@@ -29,13 +31,13 @@ bool process(Slider* slider, packet msg){
 		case get:
 			stream = fopen((char*)msg.data_p,"rb");
 			if(stream == NULL){
-				fprintf(stderr, "FAIL: fopen() error %d\n", errno);
-				set_data(&my_response, acess); // TODO is this code right? set error code to data
+				fprintf(stderr, "FAIL: fopen() errno %d\n", errno);
+				set_data(&my_response, acess);
 			} else {
 				struct stat sb;
 				if (stat((char*)msg.data_p, &sb) == -1) {
-					fprintf(stderr, "FAIL: stat() error %d\n", errno);
-					set_data(&my_response, acess); // TODO is this code right? set error code to data
+					fprintf(stderr, "FAIL: stat() errno %d\n", errno);
+					set_data(&my_response, acess);
 					fclose(stream);
 				} else {
 					my_response.type = tam;

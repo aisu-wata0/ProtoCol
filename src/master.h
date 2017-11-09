@@ -18,37 +18,43 @@ void parse(packet msg){
 	
 }
 
+void console (char** commands, int* lastCom, packet* msg, char* filename) {
+	while(msg->type == invalid){
+		*lastCom = mod(*lastCom +1, COMMAND_HIST_SIZE);
+		printf(" $\n"); // TODO print current remote dir
+		result = scanf("%[^\n]%*c", commands[*lastCom]);
+		printf("result = %d\n", result);
+		printf("command: %s\n", commands[*lastCom]);
+		// filename is not a copy of command, it points to the same memory
+		msg->type = command_to_type(commands[*lastCom], &filename);
+	}
+}
+
 int master(char* device){
 	Slider slider;
 	slider_init(&slider, device);
 	uint64_t rec_bytes;
-	char command[COMMAND_HIST_SIZE][COMMAND_BUF_SIZE];
+	char commands[COMMAND_HIST_SIZE][COMMAND_BUF_SIZE];
 	char* filename;
 	packet response;
 	packet msg;
 	int result;
-	int curr_comm = 0;
-	int comm_i = 0;
+	int lastCom = 0;
+	//int com_i = 0;
 	char fout[COMMAND_BUF_SIZE];
 	
 	// TODO: first thing when starting, send "cd ." command until you get a response
 	// server will send on the data_p the dir after the cd command (current dir on server)
 	// curr dir will be printed on the console (function below)
 	
-	// TODO make this a function
 	/* TODO change scanf to getch
 	 * read char by char and append them to command, if its \n, append "\0"
 	 * goal: if up arrow pressed, printf("\33[2K\r"); erases current written line
 	 * go back 1 in command history:
-	 * comm_i = mod(comm_i -1, COMMAND_HIST_SIZE)
-	 * printf("%s", command[comm_i]);
+	 * com_i = mod(com_i -1, COMMAND_HIST_SIZE)
+	 * printf("%s", command[com_i]);
 	 * https://stackoverflow.com/questions/10463201/getch-and-arrow-codes */
-	printf(" $\n"); // TODO print current remote dir
-	result = scanf("%[^\n]%*c", command[comm_i]);
-	printf("result = %d\n", result);
-	printf("command: %s\n", command[comm_i]);
-	// filename is not a copy of command, it points to the same memory
-	msg.type = command_to_type(command[comm_i], &filename);
+	console(commands, &lastCom, &msg, filename);
 	while(msg.type != end){
 		// check if type is invalid
 		msg.size = strlen(filename)+1; // +1 null-terminator
@@ -59,14 +65,7 @@ int master(char* device){
 		sl_send(&slider, &msg);
 		result = sl_recv(&slider, &response, TIMEOUT);
 		if(result < 1){ // timed out
-			curr_comm = mod(curr_comm +1, COMMAND_HIST_SIZE); 
-			comm_i = curr_comm;
-			printf(" $\n");
-			result = scanf("%[^\n]%*c", command[comm_i]);
-			printf("result = %d\n", result);
-			printf("command: %s\n", command[comm_i]);
-			// filename is not a copy of command, it points to the same memory
-			msg.type = command_to_type(command[comm_i], &filename);
+			console(commands, &lastCom, &msg, filename);
 			continue;
 		}
 		/**
@@ -102,15 +101,7 @@ int master(char* device){
 			printf("command failed on server\n");
 		}
 		
-		
-		curr_comm = mod(curr_comm +1, COMMAND_HIST_SIZE); 
-		comm_i = curr_comm;
-		printf(" $\n");
-		result = scanf("%[^\n]%*c", command[comm_i]);
-		printf("result = %d\n", result);
-		printf("command: %s\n", command[comm_i]);
-		// filename is not a copy of command, it points to the same memory
-		msg.type = command_to_type(command[comm_i], &filename);
+		console(commands, &lastCom, &msg, filename);
 	}
 	
 	return 0;

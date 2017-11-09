@@ -81,6 +81,32 @@ typedef struct {
 	int rseq, sseq;
 } Slider;
 
+
+inline bool seq_after(Slider* this, int xseq){
+	if(DEBUG_W)printf("Message ahead, expected seq=%d; received=%d;",slider.rseq , msg.seq);
+	return
+		( (xseq-rseq) < (-seq_max/2) )
+		|| ( ((xseq-rseq) > 0) && (xseq-rseq < (seq_max/2)) );
+}
+
+inline bool chkMsgSeq(Slider* this, packet msg){
+	// if received message from the future
+	if (seq_after(slider, msg.seq)) {
+		if(DEBUG_W)printf("WARN: Message ahead");
+		return false;
+	}
+	if(DEBUG_W)
+		if(slider.rseq != msg.seq)
+			printf("INFO: Message before");
+	// TODO test this // or add to sseq only if received response
+	// If you received a message with sequence before
+	// your response got lost and the sender is retrying
+	// rollback sseq to send response to him
+	slider.sseq += (msg.seq - slider.rseq);
+	slider.rseq = seq_mod(msg.seq +1);
+	return true;
+}
+
 int seq_to_i(Window* this, int seq){
 	// 0 1 2 3 4
 	//   a s
