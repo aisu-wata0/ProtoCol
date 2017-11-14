@@ -12,7 +12,7 @@ void print_window(Slider* this){
 	
 	it = this->window.start;
 	do{
-		printf(" %x", it);
+		printf(" \t%x", it);
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
@@ -20,7 +20,7 @@ void print_window(Slider* this){
 	
 	it = this->window.start;
 	do{
-		printf(" %x", this->window.arr[it].seq % 0xf);
+		printf(" \t%x", this->window.arr[it].seq);
 
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
@@ -29,9 +29,9 @@ void print_window(Slider* this){
 	it = this->window.start;
 	do{
 		if(this->window.arr[it].error){
-			printf(" t"); // to send
+			printf(" \tt"); // to send
 		} else {
-			printf(" s"); // sent
+			printf(" \ts"); // sent
 		}
 		
 		it = w_mod(it+1);
@@ -40,7 +40,7 @@ void print_window(Slider* this){
 	
 	it = this->window.start;
 	do{
-		printf(" %x", this->window.arr[it].type % 0xf);
+		printf(" \t%x", this->window.arr[it].type % 0xf);
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
@@ -49,9 +49,9 @@ void print_window(Slider* this){
 	it = this->window.start;
 	do{
 		if(it == this->window.acc){
-			printf(" a");
+			printf(" \ta");
 		} else {
-			printf("  ");
+			printf(" \t ");
 		}
 		
 		it = w_mod(it+1);

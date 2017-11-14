@@ -27,8 +27,6 @@
 
 #define FAIL -1
 #define mod(X,Y) (((X) % (Y)) < 0 ? ((X) % (Y)) + (Y) : ((X) % (Y)))
-#define byte_log 1/log10(256)
-#define byte_len(X) (floor(log10((X))*byte_log)+1)
 
 typedef enum msg_type {
 	ack = 0x0,
@@ -372,8 +370,10 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 		struct timeval tv;
 		if(timeout_sec > 0){
 			tv.tv_sec = timeout_sec; tv.tv_usec = 0;
-			if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval)) < 0)
+			while(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval)) < 0){
 				fprintf(stderr, "setsockopt failed\n");
+				sleep(1);
+			}
 		}
 		
 		if(DEBUG_P)printf("recv...");
@@ -384,8 +384,10 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 		
 		if(timeout_sec > 0){
 			tv.tv_sec = 0; tv.tv_usec = 0;
-			if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(struct timeval)) < 0)
+			while(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(struct timeval)) < 0){
 				fprintf(stderr, "setsockopt failed");
+				sleep(1);
+			}
 		}
 		
 		// timed out
