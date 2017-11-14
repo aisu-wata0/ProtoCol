@@ -11,11 +11,12 @@
 #include "Socket.h"
 #include "SlidingWindow.h"
 
-bool process(Slider* slider, packet msg){
-	chkMsgSeq(slider, msg);
-	
+packet process(Slider* slider, packet msg){
 	packet my_response = NIL_MSG;
-	FILE* stream;
+	packet nextMsg = NIL_MSG;
+	nextMsg.type = invalid;
+	
+	FILE* stream = NULL;
 	char* command;
 	msg_to_command(msg, &command);
 	printf("%s\n", command);
@@ -23,62 +24,67 @@ bool process(Slider* slider, packet msg){
 	
 	switch(msg.type){
 		case cd:
+			// https://linux.die.net/man/2/chdir
 			break;
 			
 		case ls:
+			// https://stackoverflow.com/questions/612097/how-can-i-get-the-list-of-files-in-a-directory-using-c-or-c
 			break;
 			
 		case get:
 			stream = fopen((char*)msg.data_p,"rb");
-			if(stream == NULL){
-				fprintf(stderr, "FAIL: fopen() errno %d\n", errno);
+			if (stream == NULL) {
+				fprintf(stderr, "INFO: fopen() errno %d\n", errno);
 				set_data(&my_response, acess);
-			} else {
-				struct stat sb;
-				if (stat((char*)msg.data_p, &sb) == -1) {
-					fprintf(stderr, "FAIL: stat() errno %d\n", errno);
-					set_data(&my_response, acess);
-					fclose(stream);
-				} else {
-					my_response.type = tam;
-					set_data(&my_response, sb.st_size);
-					
-					printf("file size = %lu bytes\n", *(uint64_t*)my_response.data_p);
-					packet msg = sl_talk(slider, my_response);
-					if(msg.type == ok){
-						send_data(slider, stream);
-						fclose(stream);
-						return true;
-					}
-					fclose(stream);
-					return false;
-				}
+				my_response.type = error;
+				nextMsg = talk(slider, my_response);
+				break;
 			}
+			struct stat sb;
+			if (stat((char*)msg.data_p, &sb) == -1) {
+				fprintf(stderr, "INFO: stat() errno %d\n", errno);
+				set_data(&my_response, acess);
+				my_response.type = error;
+				nextMsg = talk(slider, my_response);
+				fclose(stream);
+				break;
+			}
+			my_response.type = tam;
+			set_data(&my_response, sb.st_size);
+			
+			printf("file size = %lu bytes\n", *(uint64_t*)my_response.data_p);
+			packet msg = talk(slider, my_response, TIMEOUT);
+			if(msg.type != ok){
+				fclose(stream);
+				break;
+			}
+			send_data(slider, stream);
+			fclose(stream);
 			break;
 			
 		case put:
 			break;
 			
 		default:
-			return false;
+			break;
 	}
-	my_response.type = error;
-	sl_send(slider, &my_response);
-	return false;
+	return nextMsg;
 }
 
 int dorei(char* device){
 	Slider slider;
 	slider_init(&slider, device);
 	
-	packet msg;
+	packet msg = NIL_MSG;
+	msg.type = invalid;
 	
 	while(true){
-		sl_recv(&slider, &msg, 0);
+		if(msg.type == invalid)
+			recv(&slider, &msg, 0);
 		if(DEBUG_W)printf("Received request: ");
 		if(DEBUG_W)print(msg);
 		
-		process(&slider, msg);
+		msg = process(&slider, msg);
 	}
 	
 	return 0;

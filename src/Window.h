@@ -171,16 +171,6 @@ int sl_recv(Slider* this, packet* msg, int timeout_sec){
 	return buf_n;
 }
 /**
- * @brief Sends message of current sequence
- */
-void sl_send(Slider* this, packet* msg){
-	set_seq(this, msg);
-	
-	if(DEBUG_W)printf("> Sending\n ");
-	if(DEBUG_W)print(*msg);
-	send_msg(this->sock, *msg, this->buf);
-}
-/**
  * @brief Repeats message until valid response arrives
  */
 packet sl_talk(Slider* this, packet msg){
@@ -217,5 +207,126 @@ packet sl_talk(Slider* this, packet msg){
 	
 	return response;
 }
+
+
+
+
+
+
+
+
+void timedout(Slider* this){
+	this->sseq = seq_mod(this->sseq -1);
+}
+
+int recv(Slider* this, packet* msg, int timeout_sec){
+	int buf_n = rec_packet(this->sock, msg, this->buf, timeout_sec);
+	if(buf_n < 1){
+		if(DEBUG_W)printf("Timed out.\n");
+		return buf_n;
+	}
+	
+	if(msg->seq == seq_mod(this->rseq -1)){
+		if(DEBUG_W)printf("\tINFO: Timeout infered from recv seq, this->rseq=%hhx; recv: \n", this->rseq, msg->seq);
+		this->rseq = msg->seq;
+		timedout(Slider* this);
+	}
+	
+	if(seq_after(this->rseq, msg->seq)){
+		if(DEBUG_W)printf("msg.seq too low, this->rseq=%hhx; recvMsg: ", this->rseq);
+		if(DEBUG_W)print(*msg);
+		// return -2;
+	}
+	
+	if(this->rseq != msg->seq){
+		if(DEBUG_W)printf("\tWARN: this->rseq=%x recv=%x\n", this->rseq, msg->seq);
+		this->rseq = msg->seq;
+	}
+	
+	this->rseq = seq_mod(this->rseq +1);
+	
+	return buf_n;
+}
+
+/**
+ * @brief Sends message of current sequence
+ */
+void send(Slider* this, packet* msg){
+	set_seq(this, msg);
+	
+	if(DEBUG_W)printf("> Sending\n ");
+	if(DEBUG_W)print(*msg);
+	send_msg(this->sock, *msg, this->buf);
+}
+/**
+ * @brief Repeats message until valid response arrives
+ */
+packet talk(Slider* this, packet msg, int timeout_sec = 0){
+	packet response;
+	bool responded = false;
+	
+	set_seq(this, &msg);
+	
+	if(DEBUG_W)printf("> Sending\n ");
+	if(DEBUG_W)print(msg);
+	while( ! responded) {
+		if(DEBUG_W)printf("try... ");
+		send_msg(this->sock, msg, this->buf);
+		
+		int buf_n = rec_packet(this->sock, &response, this->buf, timeout_sec);
+		if (buf_n < 1) {
+			if(DEBUG_W)printf("timeout \t");
+			continue; // no response, send again
+		}
+		
+		if(response.seq != this->rseq){
+			if(DEBUG_W)printf("\tINFO: Timeout infered from recv seq, this->rseq=%hhx; recv: \n", this->rseq, response->seq);
+			if(DEBUG_W)print(response);
+			continue; // send again
+		}
+		
+		this->rseq = seq_mod(this->rseq +1);
+		responded = true;
+	}
+	
+	if(DEBUG_W)printf("< Response:\n");
+	if(DEBUG_W)print(response);
+	
+	return response;
+}
+/**
+ * @brief Repeats message until valid response arrives
+ */
+packet say(Slider* this, packet msg){
+	packet response = NIL_MSG;
+	response.type = invalid;
+	
+	set_seq(this, &msg);
+	
+	if(DEBUG_W)printf("> Saying\n ");
+	if(DEBUG_W)print(msg);
+	while(true) {
+		if(DEBUG_W)printf("try... ");
+		send_msg(this->sock, msg, this->buf);
+		
+		int buf_n = rec_packet(this->sock, &response, this->buf, TIMEOUT*2);
+		if (buf_n < 1) {
+			if(DEBUG_W)printf("say timeout \t");
+			break;
+		}
+		
+		if(response.seq == this->rseq){
+			this->rseq = seq_mod(this->rseq +1);
+			if(DEBUG_W)printf("< Received:\n");
+			if(DEBUG_W)print(response);
+			break;
+		}
+	}
+	
+	return response;
+}
+
+
+
 
 #endif

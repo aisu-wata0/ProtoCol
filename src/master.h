@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 
 #include "Protocol.h"
 #include "Socket.h"
@@ -15,11 +16,62 @@
 #define COMMAND_BUF_SIZE 256
 
 void parse(packet msg){
+	packet my_response = NIL_MSG;
+	FILE* stream;
 	
+	response = talk(this, msg, TIMEOUT);
+	if(DEBUG_W)printf("< response:\n");
+	if(DEBUG_W)print(response);
+	
+	switch(msg.type){
+		case cd:
+			break;
+			
+		case ls:
+			break;
+			
+		case get:
+			if(response.type != tam){
+				printf("Command failed on server with errno: %d\n", (*(int*)response.data_p));
+				return false;
+			}
+			int file_size_B = *(uint64_t*)response.data_p;
+// https://stackoverflow.com/questions/3992171/how-do-i-programmatically-get-the-free-disk-space-for-a-directory-in-linux
+			// Check if current directory has space
+			struct statvfs currDir;
+			statvfs(".", &currDir);
+			unsigned long freespace = currDir.f_bsize * currDir.f_bfree;
+			if(freespace < file_size_B){
+				printf("Not enough space on current dir %d/%d\n", file_size_B, freespace);
+				msg = NIL_MSG;
+				msg.type = nack;
+				msg = say(this, msg);
+				return false;
+			}
+			memcpy(fout, msg.data_p, msg.size);
+			strcat(fout, ".out");
+			FILE* stream = fopen(fout, "wb");
+			
+			rec_bytes = receive_data(&slider, stream, file_size_B);
+			if(rec_bytes < 1){
+				printf("Receive data failed: wrong response. Try again\n");
+				fclose(stream);
+				return false;
+			}
+			printf("\nbytes transfered = %lu\n", rec_bytes);
+			fclose(stream);
+			
+		case put:
+			break;
+			
+		default:
+			return false;
+	}
+	return true;
 }
 
 void console (char** commands, int* lastCom, packet* msg, char* filename) {
-	while(msg->type == invalid){
+	while (msg->type == invalid) {
 		*lastCom = mod(*lastCom +1, COMMAND_HIST_SIZE);
 		printf(" $\n"); // TODO print current remote dir
 		result = scanf("%[^\n]%*c", commands[*lastCom]);
@@ -28,6 +80,12 @@ void console (char** commands, int* lastCom, packet* msg, char* filename) {
 		// filename is not a copy of command, it points to the same memory
 		msg->type = command_to_type(commands[*lastCom], &filename);
 	}
+	if (strlen(filename) > 0) {
+		msg.size = strlen(filename)+1; // +1 null-terminator
+		msg.data_p = malloc(msg.size);
+		memcpy(msg.data_p, filename, msg.size);
+	}
+	return msg.type;
 }
 
 int master(char* device){
@@ -54,54 +112,8 @@ int master(char* device){
 	 * com_i = mod(com_i -1, COMMAND_HIST_SIZE)
 	 * printf("%s", command[com_i]);
 	 * https://stackoverflow.com/questions/10463201/getch-and-arrow-codes */
-	console(commands, &lastCom, &msg, filename);
-	while(msg.type != end){
-		// check if type is invalid
-		msg.size = strlen(filename)+1; // +1 null-terminator
-		msg.data_p = malloc(msg.size);
-		memcpy(msg.data_p, filename, msg.size);
-		
-		/*DEBUG*/
-		sl_send(&slider, &msg);
-		result = sl_recv(&slider, &response, TIMEOUT);
-		if(result < 1){ // timed out
-			console(commands, &lastCom, &msg, filename);
-			continue;
-		}
-		/**
-		read_msg(&response);
-		slider.rseq = seq_mod(slider.rseq +1);
-		/**/
-		
-		printf("< response:\n");
-		print(response);
-		
-		if(response.type == tam){
-			memcpy(fout, msg.data_p, msg.size);
-			strcat(fout, ".out");
-			FILE* stream = fopen(fout, "wb");
-			
-			int file_size_B = *(uint64_t*)response.data_p;
-			
-//			if(has space on current dir){ TODO
-				msg = NIL_MSG;
-				msg.type = ok;
-				sl_send(&slider, &msg);
-				rec_bytes = receive_data(&slider, stream, file_size_B);
-				if(rec_bytes > 0){
-					printf("\nbytes transfered = %lu\n", rec_bytes);
-				} else {
-					printf("receive data failed: wrong response. Try again\n");
-				}
-//			} TODO
-			fclose(stream);
-		} else {
-			// TODO: if error, print on screen appropriately for each type of error
-			// might not be error, just wrong type of response
-			printf("command failed on server\n");
-		}
-		
-		console(commands, &lastCom, &msg, filename);
+	while(console(commands, &lastCom, &msg, filename) != end){
+		parse(msg);
 	}
 	
 	return 0;

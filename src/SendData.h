@@ -195,15 +195,14 @@ int send_data(Slider* this, FILE* stream){
 	
 	while(!ended){
 		if(DEBUG_W)print_window(this);
-		
 		send_window(this);
-		/*DEBUG*/
+		/**/
 		// with timeout
 		int buf_n = sl_recv(this, &response, TIMEOUT);
 		if(buf_n < 1){
 			continue; // timeout, send window again
 		}
-		/**
+		/*DEBUG*
 		printf("Receive reply? ");
 		int reply;
 		if(scanf("%x", &reply) < 0) fprintf(stderr, "scan error\n");
@@ -227,10 +226,9 @@ int send_data(Slider* this, FILE* stream){
 		}
 	}
 	
-	/*TMP*/
 	if(this->sseq != seq_mod(w_back(&this->window).seq +1)){
-		fprintf(stderr, "ERROR: seqs should be equal! %x != %x\n", this->sseq%0xf, seq_mod(w_back(&this->window).seq +1)%0xf);
-	}/**/
+		fprintf(stderr, "WARN: End of send_data, seqs should be equal! %x != %x\n", this->sseq, seq_mod(w_back(&this->window).seq +1));
+	}
 	
 	return true;
 }

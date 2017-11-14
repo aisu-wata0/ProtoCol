@@ -129,7 +129,7 @@ bool is_command(char* command, char* typ, char** target){
 msg_type_t command_to_type(char* command, char** target){
 	trim(command);
 	
-	if(is_command(command, "cd ", target)) return cd;
+	if(is_command(command, "cd", target)) return cd;
 	if(is_command(command, "ls", target)) return ls;
 	if(is_command(command, "get ", target)) return get;
 	if(is_command(command, "put ", target)) return put;
@@ -358,7 +358,7 @@ void set_data(packet* msg, uint64_t num){
  * @param timeout_sec timeout in secs, if 0, blocks until a packet is received
  * @return returns -1 if timed out, else, bytes written in buf
  */
-int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
+int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec = 0){
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
 

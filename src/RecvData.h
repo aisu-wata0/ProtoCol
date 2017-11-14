@@ -188,56 +188,42 @@ long receive_data(Slider* this, FILE* stream, long data_size){
 	w_init(&this->window, this->rseq);
 	
 	int buf_size;
-
-//	msg.type = ok;
-//	msg.size = 0;
-//	
-//	/*DEBUG*/
-//	msg = sl_talk(this, msg);
-//	
-//	sl_send(this, &msg);
-//	result = sl_recv(this, &msg, TIMEOUT);
-//	/**
-//	read_msg(&msg);
-//	/**/
-//	
-//	buf_size = msg.size;
-//	
-//	if(msg.type != data){
-//		fprintf(stderr, "received wrong type on response\n");
-//	}
-
+	
+	msg = NIL_MSG;
+	msg.type = ok;
+	/**/
+	msg = talk(this, msg);
+	/*DEBUG
+	read_msg(&msg);
+	*/
+	if(DEBUG_W)print(msg);
+	if((msg.type != data) && (msg.type != end)){
+		return -1;
+	}
+	handle_msg(this, msg);
+	
 	if(DEBUG_W)print_slider(this);
 	
 	while(!ended){
-		/*DEBUG*/
-		////if(msg.type == invalid){
+		// wait first packet of stream
 		buf_size = rec_packet(this->sock, &msg, this->buf, 0);
-		////}
-		/**
-		buf_size = 1;
-		/**/
+		// while there's packets on stream
 		while(buf_size > 0){
+			if(DEBUG_W)print(msg);
 			if((msg.type != data) && (msg.type != end)){
 				return -1;
 			}
-			/*DEBUG*
-			read_msg(&msg);
-			/**/
-			
-			if(DEBUG_W)print(msg);
-			
 			handle_msg(this, msg);
-			msg.type = invalid;
 			
 			if(DEBUG_W)print_slider(this);
 			
-			/*DEBUG*/
+			// try another packet of the stream
+			/**/
 			buf_size = 0;
 			if(indexes_remain(&this->window) > 0){
 				buf_size = try_packet(this->sock, &msg, this->buf);
 			}
-			/**
+			/*DEBUG*
 			printf("next msg buf_size = ");
 			int result;
 			if(scanf("%x", &result) < 0) fprintf(stderr, "scan error\n");
