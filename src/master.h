@@ -52,7 +52,6 @@ bool parse(Slider* this, packet msg){
 				return false;
 			}
 			memcpy(fout, msg.data_p, msg.size);
-			strcat(fout, ".out");
 			FILE* stream = fopen(fout, "wb");
 			
 			rec_bytes = receive_data(this, stream, file_size_B);
