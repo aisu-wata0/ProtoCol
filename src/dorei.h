@@ -19,9 +19,10 @@ packet process(Slider* slider, packet msg){
 	FILE* stream = NULL;
 	char* command = NULL;
 	msg_to_command(msg, &command);
-	printf("%s\n", command);
-	if(command != NULL)
+	if(command != NULL){
+		printf("%s\n", command);
 		free(command);
+	}
 	
 	switch(msg.type){
 		case cd:

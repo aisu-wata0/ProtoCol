@@ -21,8 +21,6 @@ bool parse(Slider* this, packet msg){
 	uint64_t rec_bytes;
 	
 	response = talk(this, msg, TIMEOUT);
-	if(DEBUG_W)printf("< response:\n");
-	if(DEBUG_W)print(response);
 	
 	switch(msg.type){
 		case cd:

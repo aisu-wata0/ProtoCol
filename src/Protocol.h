@@ -27,8 +27,6 @@
 
 #define FAIL -1
 #define mod(X,Y) (((X) % (Y)) < 0 ? ((X) % (Y)) + (Y) : ((X) % (Y)))
-#define byte_log 1/log10(256)
-#define byte_len(X) (floor(log10((X))*byte_log)+1)
 
 typedef enum msg_type {
 	ack = 0x0,
@@ -346,7 +344,7 @@ int frame_msg(uint8_t* buf, int buf_n){
 }
 
 void set_data(packet* msg, uint64_t num){
-	msg->size = byte_len(num);
+	msg->size = sizeof(uint64_t);
 	msg->data_p = malloc(msg->size);
 	*(uint64_t*)msg->data_p = num;
 }
