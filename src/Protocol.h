@@ -358,7 +358,7 @@ void set_data(packet* msg, uint64_t num){
  * @param timeout_sec timeout in secs, if 0, blocks until a packet is received
  * @return returns -1 if timed out, else, bytes written in buf
  */
-int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec = 0){
+int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 	struct sockaddr saddr;
 	int saddr_len = sizeof(saddr);
 

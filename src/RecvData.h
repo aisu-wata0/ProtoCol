@@ -192,7 +192,7 @@ long receive_data(Slider* this, FILE* stream, long data_size){
 	msg = NIL_MSG;
 	msg.type = ok;
 	/**/
-	msg = talk(this, msg);
+	msg = talk(this, msg, 0);
 	/*DEBUG
 	read_msg(&msg);
 	*/

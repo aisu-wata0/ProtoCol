@@ -82,28 +82,28 @@ typedef struct {
 } Slider;
 
 
-inline bool seq_after(Slider* this, int xseq){
-	if(DEBUG_W)printf("Message ahead, expected seq=%d; received=%d;",slider.rseq , msg.seq);
+bool seqAfter(Slider* this, int xseq){
+	if(DEBUG_W)printf("Message ahead, expected seq=%d; received=%d;",this->rseq, xseq);
 	return
-		( (xseq-rseq) < (-seq_max/2) )
-		|| ( ((xseq-rseq) > 0) && (xseq-rseq < (seq_max/2)) );
+		( (xseq - this->rseq) < (-seq_max/2) )
+		|| ( ((xseq - this->rseq) > 0) && (xseq - this->rseq < (seq_max/2)) );
 }
 
-inline bool chkMsgSeq(Slider* this, packet msg){
+bool chkMsgSeq(Slider* this, packet msg){
 	// if received message from the future
-	if (seq_after(slider, msg.seq)) {
+	if (seqAfter(this, msg.seq)) {
 		if(DEBUG_W)printf("WARN: Message ahead");
 		return false;
 	}
 	if(DEBUG_W)
-		if(slider.rseq != msg.seq)
+		if(this->rseq != msg.seq)
 			printf("INFO: Message before");
 	// TODO test this // or add to sseq only if received response
 	// If you received a message with sequence before
 	// your response got lost and the sender is retrying
 	// rollback sseq to send response to him
-	slider.sseq += (msg.seq - slider.rseq);
-	slider.rseq = seq_mod(msg.seq +1);
+	this->sseq += (msg.seq - this->rseq);
+	this->rseq = seq_mod(msg.seq +1);
 	return true;
 }
 
@@ -219,27 +219,28 @@ void timedout(Slider* this){
 	this->sseq = seq_mod(this->sseq -1);
 }
 
-int recv(Slider* this, packet* msg, int timeout_sec){
+int recvMsg(Slider* this, packet* msg, int timeout_sec){
 	int buf_n = rec_packet(this->sock, msg, this->buf, timeout_sec);
 	if(buf_n < 1){
 		if(DEBUG_W)printf("Timed out.\n");
 		return buf_n;
 	}
+	if(DEBUG_W)printf("Received:\n");
+	if(DEBUG_W)print(*msg);
 	
 	if(msg->seq == seq_mod(this->rseq -1)){
-		if(DEBUG_W)printf("\tINFO: Timeout infered from recv seq, this->rseq=%hhx; recv: \n", this->rseq, msg->seq);
+		if(DEBUG_W)printf("\tINFO: Timeout infered from recv seq, this->rseq=%hhx;\n", this->rseq);
 		this->rseq = msg->seq;
-		timedout(Slider* this);
+		timedout(this);
 	}
 	
 	if(seq_after(this->rseq, msg->seq)){
-		if(DEBUG_W)printf("msg.seq too low, this->rseq=%hhx; recvMsg: ", this->rseq);
-		if(DEBUG_W)print(*msg);
+		if(DEBUG_W)printf("msg.seq too low, this->rseq=%hhx;", this->rseq);
 		// return -2;
 	}
 	
 	if(this->rseq != msg->seq){
-		if(DEBUG_W)printf("\tWARN: this->rseq=%x recv=%x\n", this->rseq, msg->seq);
+		if(DEBUG_W)printf("\tWARN: this->rseq=%x\n", this->rseq);
 		this->rseq = msg->seq;
 	}
 	
@@ -251,7 +252,7 @@ int recv(Slider* this, packet* msg, int timeout_sec){
 /**
  * @brief Sends message of current sequence
  */
-void send(Slider* this, packet* msg){
+void sendSeq(Slider* this, packet* msg){
 	set_seq(this, msg);
 	
 	if(DEBUG_W)printf("> Sending\n ");
@@ -261,7 +262,7 @@ void send(Slider* this, packet* msg){
 /**
  * @brief Repeats message until valid response arrives
  */
-packet talk(Slider* this, packet msg, int timeout_sec = 0){
+packet talk(Slider* this, packet msg, int timeout_sec){
 	packet response;
 	bool responded = false;
 	
@@ -280,7 +281,7 @@ packet talk(Slider* this, packet msg, int timeout_sec = 0){
 		}
 		
 		if(response.seq != this->rseq){
-			if(DEBUG_W)printf("\tINFO: Timeout infered from recv seq, this->rseq=%hhx; recv: \n", this->rseq, response->seq);
+			if(DEBUG_W)printf("\tINFO: Timeout infered from recv seq, this->rseq=%hhx; recv.seq=%hhx\n", this->rseq, response.seq);
 			if(DEBUG_W)print(response);
 			continue; // send again
 		}

@@ -15,9 +15,10 @@
 #define COMMAND_HIST_SIZE 64
 #define COMMAND_BUF_SIZE 256
 
-void parse(packet msg){
-	packet my_response = NIL_MSG;
-	FILE* stream;
+bool parse(Slider* this, packet msg){
+	packet response = NIL_MSG;
+	char fout[COMMAND_BUF_SIZE];
+	uint64_t rec_bytes;
 	
 	response = talk(this, msg, TIMEOUT);
 	if(DEBUG_W)printf("< response:\n");
@@ -35,14 +36,14 @@ void parse(packet msg){
 				printf("Command failed on server with errno: %d\n", (*(int*)response.data_p));
 				return false;
 			}
-			int file_size_B = *(uint64_t*)response.data_p;
+			unsigned long long file_size_B = *(uint64_t*)response.data_p;
 // https://stackoverflow.com/questions/3992171/how-do-i-programmatically-get-the-free-disk-space-for-a-directory-in-linux
 			// Check if current directory has space
 			struct statvfs currDir;
 			statvfs(".", &currDir);
-			unsigned long freespace = currDir.f_bsize * currDir.f_bfree;
+			unsigned long long freespace = currDir.f_bsize * currDir.f_bfree;
 			if(freespace < file_size_B){
-				printf("Not enough space on current dir %d/%d\n", file_size_B, freespace);
+				printf("Not enough space on current dir %llu/%llu\n", file_size_B, freespace);
 				msg = NIL_MSG;
 				msg.type = nack;
 				msg = say(this, msg);
@@ -52,7 +53,7 @@ void parse(packet msg){
 			strcat(fout, ".out");
 			FILE* stream = fopen(fout, "wb");
 			
-			rec_bytes = receive_data(&slider, stream, file_size_B);
+			rec_bytes = receive_data(this, stream, file_size_B);
 			if(rec_bytes < 1){
 				printf("Receive data failed: wrong response. Try again\n");
 				fclose(stream);
@@ -70,36 +71,36 @@ void parse(packet msg){
 	return true;
 }
 
-void console (char** commands, int* lastCom, packet* msg, char* filename) {
+msg_type_t console (char** commands, int* lastCom, packet* msg) {
+	char* filename;
 	while (msg->type == invalid) {
 		*lastCom = mod(*lastCom +1, COMMAND_HIST_SIZE);
 		printf(" $\n"); // TODO print current remote dir
-		result = scanf("%[^\n]%*c", commands[*lastCom]);
-		printf("result = %d\n", result);
+		scanf("%[^\n]%*c", commands[*lastCom]);
 		printf("command: %s\n", commands[*lastCom]);
 		// filename is not a copy of command, it points to the same memory
 		msg->type = command_to_type(commands[*lastCom], &filename);
 	}
 	if (strlen(filename) > 0) {
-		msg.size = strlen(filename)+1; // +1 null-terminator
-		msg.data_p = malloc(msg.size);
-		memcpy(msg.data_p, filename, msg.size);
+		msg->size = strlen(filename)+1; // +1 null-terminator
+		msg->data_p = malloc(msg->size);
+		memcpy(msg->data_p, filename, msg->size);
 	}
-	return msg.type;
+	return msg->type;
 }
 
 int master(char* device){
 	Slider slider;
 	slider_init(&slider, device);
-	uint64_t rec_bytes;
-	char commands[COMMAND_HIST_SIZE][COMMAND_BUF_SIZE];
-	char* filename;
-	packet response;
-	packet msg;
-	int result;
+	
 	int lastCom = 0;
+	char** commands;
+	commands = malloc(COMMAND_HIST_SIZE*sizeof(char*));
+	for(int i = 0; i < COMMAND_HIST_SIZE; ++i)
+		commands[i] = malloc(COMMAND_BUF_SIZE*sizeof(char));
+	
+	packet msg;
 	//int com_i = 0;
-	char fout[COMMAND_BUF_SIZE];
 	
 	// TODO: first thing when starting, send "cd ." command until you get a response
 	// server will send on the data_p the dir after the cd command (current dir on server)
@@ -112,8 +113,8 @@ int master(char* device){
 	 * com_i = mod(com_i -1, COMMAND_HIST_SIZE)
 	 * printf("%s", command[com_i]);
 	 * https://stackoverflow.com/questions/10463201/getch-and-arrow-codes */
-	while(console(commands, &lastCom, &msg, filename) != end){
-		parse(msg);
+	while(console(commands, &lastCom, &msg) != end){
+		parse(&slider, msg);
 	}
 	
 	return 0;

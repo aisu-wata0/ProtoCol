@@ -37,7 +37,7 @@ packet process(Slider* slider, packet msg){
 				fprintf(stderr, "INFO: fopen() errno %d\n", errno);
 				set_data(&my_response, acess);
 				my_response.type = error;
-				nextMsg = talk(slider, my_response);
+				nextMsg = talk(slider, my_response, 0);
 				break;
 			}
 			struct stat sb;
@@ -45,7 +45,7 @@ packet process(Slider* slider, packet msg){
 				fprintf(stderr, "INFO: stat() errno %d\n", errno);
 				set_data(&my_response, acess);
 				my_response.type = error;
-				nextMsg = talk(slider, my_response);
+				nextMsg = talk(slider, my_response, 0);
 				fclose(stream);
 				break;
 			}
@@ -80,7 +80,7 @@ int dorei(char* device){
 	
 	while(true){
 		if(msg.type == invalid)
-			recv(&slider, &msg, 0);
+			recvMsg(&slider, &msg, 0);
 		if(DEBUG_W)printf("Received request: ");
 		if(DEBUG_W)print(msg);
 		
