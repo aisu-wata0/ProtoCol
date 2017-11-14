@@ -37,6 +37,8 @@ bool parse(Slider* this, packet msg){
 				return false;
 			}
 			unsigned long long file_size_B = *(uint64_t*)response.data_p;
+			printf("File size = %lu\n", *(uint64_t*)response.data_p);
+			printf("File size = %llu\n", file_size_B);
 // https://stackoverflow.com/questions/3992171/how-do-i-programmatically-get-the-free-disk-space-for-a-directory-in-linux
 			// Check if current directory has space
 			struct statvfs currDir;
@@ -73,10 +75,12 @@ bool parse(Slider* this, packet msg){
 
 msg_type_t console (char** commands, int* lastCom, packet* msg) {
 	char* filename;
+	msg->type = invalid;
 	while (msg->type == invalid) {
 		*lastCom = mod(*lastCom +1, COMMAND_HIST_SIZE);
 		printf(" $\n"); // TODO print current remote dir
-		scanf("%[^\n]%*c", commands[*lastCom]);
+		int result = scanf("%[^\n]%*c", commands[*lastCom]);
+		printf("result = %d\n", result);
 		printf("command: %s\n", commands[*lastCom]);
 		// filename is not a copy of command, it points to the same memory
 		msg->type = command_to_type(commands[*lastCom], &filename);
@@ -99,7 +103,7 @@ int master(char* device){
 	for(int i = 0; i < COMMAND_HIST_SIZE; ++i)
 		commands[i] = malloc(COMMAND_BUF_SIZE*sizeof(char));
 	
-	packet msg;
+	packet msg = NIL_MSG;
 	//int com_i = 0;
 	
 	// TODO: first thing when starting, send "cd ." command until you get a response

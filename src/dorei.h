@@ -17,10 +17,11 @@ packet process(Slider* slider, packet msg){
 	nextMsg.type = invalid;
 	
 	FILE* stream = NULL;
-	char* command;
+	char* command = NULL;
 	msg_to_command(msg, &command);
 	printf("%s\n", command);
-	free(command);
+	if(command != NULL)
+		free(command);
 	
 	switch(msg.type){
 		case cd:
