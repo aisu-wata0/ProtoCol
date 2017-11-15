@@ -113,7 +113,7 @@ int seq_to_i(Window* this, int seq){
 	// 3 4 2
 	// if I want index of packet.seq 5, given: start is 0;[0].seq == 3
 	// 3 4 5 6 7	5-3 = 2		0 + 2 = 2
-	return w_mod(this->start + (seq - this->arr[this->start].seq));
+	return w_mod(this->start + seq_mod(seq - this->arr[this->start].seq));
 }
 
 packet* at_seq(Window* this, int seq){
