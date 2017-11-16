@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 #include "Protocol.h"
 #include "Socket.h"
@@ -17,11 +18,15 @@ packet process(Slider* slider, packet msg){
 	nextMsg.type = invalid;
 	
 	FILE* stream = NULL;
-	char* command = NULL;
-	msg_to_command(msg, &command);
-	if(command != NULL){
-		printf("%s\n", command);
-		free(command);
+	char* commandStr = NULL;
+	bool isCommand = false;
+	isCommand = msg_to_command(msg, &commandStr);
+	if( ! isCommand)
+		return nextMsg;
+	
+	if(commandStr != NULL){
+		printf("%s\n", commandStr);
+		free(commandStr);
 	}
 	
 	switch(msg.type){
@@ -31,6 +36,22 @@ packet process(Slider* slider, packet msg){
 			
 		case ls:
 			// https://stackoverflow.com/questions/612097/how-can-i-get-the-list-of-files-in-a-directory-using-c-or-c
+			DIR *dir;
+			dir = opendir(".");
+			if (dir == NULL) {
+				 // could not open directory
+				fprintf(stderr, "INFO: opendir() errno %d\n", errno);
+				set_data(&my_response, acess);
+				my_response.type = error;
+				nextMsg = talk(slider, my_response, 0);
+				break;
+			}
+			// for all the files and directories within directory 
+			struct dirent *ent;
+			while ((ent = readdir(dir)) != NULL) {
+				printf("%s\n", ent->d_name);
+			}
+			closedir(dir);
 			break;
 			
 		case get:

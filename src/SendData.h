@@ -40,7 +40,7 @@ void print_window(Slider* this){
 	
 	it = this->window.start;
 	do{
-		printf(" \t%x", this->window.arr[it].type % 0xf);
+		printf(" \t%x", this->window.arr[it].type);
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
@@ -104,7 +104,7 @@ void fill_window(Slider* this, int from, FILE* stream, bool* ended, bool* eof){
 		}
 		/*TMP*/
 		if(this->window.arr[i].seq != i_to_seq(&this->window, i)){
-			if(DEBUG_W)fprintf(stderr,"ERROR: seqs should be equal! %x != %x\n", this->window.arr[i].seq%0xf, i_to_seq(&this->window, i)%0xf);
+			if(DEBUG_W)fprintf(stderr,"ERROR: seqs should be equal! %x != %x\n", this->window.arr[i].seq, i_to_seq(&this->window, i));
 			this->window.arr[i].seq = i_to_seq(&this->window, i);
 		}/**/
 		

@@ -12,7 +12,7 @@ void print_slider(Slider* this){
 	printf("indexes  ");
 	it = this->window.start;
 	do{
-		printf(" %x", it);
+		printf("  \t%x", it);
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
@@ -21,6 +21,7 @@ void print_slider(Slider* this){
 	printf("sequence ");
 	it = this->window.start;
 	do{
+		printf(" \t");
 		if(this->window.arr[it].error){
 			printf("-");
 		} else {
@@ -35,7 +36,7 @@ void print_slider(Slider* this){
 	printf("type     ");
 	it = this->window.start;
 	do{
-		printf(" %x", this->window.arr[it].type);
+		printf(" \t%x", this->window.arr[it].type);
 		
 		it = w_mod(it+1);
 	} while(it != w_mod(w_end(&this->window) +1));
@@ -44,12 +45,13 @@ void print_slider(Slider* this){
 	printf("pointers ");
 	it = this->window.start;
 	do{
+		printf(" \t");
 		if(it == this->window.acc){
-			printf(" a");
+			printf("a");
 		} else if(it == this->window.start) {
-			printf(" s");
+			printf("s");
 		} else {
-			printf("  ");
+			printf(" ");
 		}
 		
 		it = w_mod(it+1);
@@ -118,7 +120,7 @@ void write_to_file(Slider* this, FILE* stream, long* rec_size, bool* ended){
 				*ended = true;
 				break;
 			}
-			if(DEBUG_W)printf("%hx, ", this->window.arr[it].seq % 0xf);
+			if(DEBUG_W)printf("%hx, ", this->window.arr[it].seq);
 			// writing data to file
 			//fwrite(this->window.arr[it].data_p, 1, this->window.arr[it].size, stream);
 			fwrite(this->window.arr[it].data_p, this->window.arr[it].size, 1, stream);
