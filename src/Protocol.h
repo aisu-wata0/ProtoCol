@@ -220,7 +220,7 @@ packet deserialize(uint8_t* buf, int buf_n){
 		fprintf(stderr, "received message buffer too small for said message size\n");
 		msg.error = true;
 	}
-	
+
 	msg.data_p = (uint8_t*)malloc(msg.size);
 	// copy buffer to data
 	memcpy(msg.data_p, &buf[2], msg.size);

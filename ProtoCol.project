@@ -34,6 +34,14 @@
     <File Name="Makefile"/>
     <File Name=".gitignore"/>
   </VirtualDirectory>
+  <VirtualDirectory Name="IO">
+    <File Name="IO/in.txt"/>
+    <File Name="IO/out.txt"/>
+  </VirtualDirectory>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Debug Dorei"/>
+  <Dependencies Name="Release"/>
+  <Dependencies Name="Release Dorei"/>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="-Wno-comment" C_Options="-Wno-comment" Assembler="">
@@ -48,9 +56,11 @@
       <Compiler Options="-g;-O0;-Wall" C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
-      <Linker Options="" Required="yes"/>
+      <Linker Options="" Required="yes">
+        <Library Value="m"/>
+      </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="-n eno1 -m" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="./" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="-n eno1 -d" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="./" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
       </Environment>
@@ -199,8 +209,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <VirtualDirectory Name="IO">
-    <File Name="IO/in.txt"/>
-    <File Name="IO/out.txt"/>
-  </VirtualDirectory>
 </CodeLite_Project>
