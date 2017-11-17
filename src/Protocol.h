@@ -46,9 +46,9 @@ typedef enum msg_type {
 } msg_type_t;
 
 typedef enum err_code {
-	inex = 0x0,
-	acess = 0x1,
-	space = 0x1,
+	inex = 0x1,
+	acess = 0x2,
+	space = 0x3,
 } err_code_t;
 
 /**

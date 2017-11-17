@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <wordexp.h>
 #include <time.h>
+#include <errno.h>
 
 #include "Protocol.h"
 #include "Socket.h"
@@ -68,6 +69,34 @@ packet process(Slider* slider, packet msg){
 	switch(msg.type){
 		case cd:
 			// https://linux.die.net/man/2/chdir
+			chdir((char*)msg.data_p);
+			
+			if(msg.error){
+				//enviar Nack aonde?
+				//enviar msg aonde?
+				
+				my_response.type = nack;
+				break;
+			}
+			
+			if(errno != 0){
+				switch(errno){
+					case ENOENT:
+						printf("Directory does not exist");
+						set_data(&my_response, inex);
+						break;
+					case EACCES:
+						printf("Acces denied");
+						set_data(&my_response, acess);
+						break;
+					default:
+						printf("Errno = %d", errno);
+				}
+				my_response.type = error;
+			}
+			
+			my_response.type = ok;
+			
 			break;
 			
 		case ls:
@@ -180,7 +209,7 @@ int dorei(char* device){
 		strcpy((char*)msg.data_p, target);
 		
 		if(msg.type == invalid)
-			//recvMsg(&slider, &msg, 0);
+			recvMsg(&slider, &msg, 0);
 		if(DEBUG_W)printf("Received request: ");
 		if(DEBUG_W)print(msg);
 		
