@@ -172,7 +172,7 @@ int handle_response(Window* this, packet response){
 			this->start = w_mod(seq_to_i(this, response_seq) +1);
 			break;
 		default:
-			fprintf(stderr, "received a response that isn't ack nor nack in data transfer\n");
+			fprintf(stderr, "WARN: received a response that isn't ack nor nack in data transfer\n");
 			return false;
 	}
 	
@@ -199,8 +199,8 @@ int send_data(Slider* this, FILE* stream){
 		/**/
 		// with timeout
 		int buf_n = sl_recv(this, &response, TIMEOUT);
-		if(buf_n < 1){
-			continue; // timeout, send window again
+		if(buf_n < 1 || ( (response.type != ack) && (response.type != nack) ) ){
+			continue; // timeout or invalid reply, send window again
 		}
 		/*DEBUG*
 		printf("Receive reply? ");
@@ -211,9 +211,6 @@ int send_data(Slider* this, FILE* stream){
 		}
 		read_msg(&response);
 		/**/
-		if((response.type != ack) && (response.type != nack)){
-			return true;
-		}
 		set_sent(&this->window);
 		
 		if(DEBUG_W)printf("handling response\n");

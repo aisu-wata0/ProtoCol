@@ -29,6 +29,7 @@
     <File Name="src/RecvData.h"/>
     <File Name="src/SendData.h"/>
     <File Name="src/Window.h"/>
+    <File Name="src/commands.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="root">
     <File Name="Makefile"/>

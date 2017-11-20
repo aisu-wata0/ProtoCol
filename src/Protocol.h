@@ -185,7 +185,8 @@ typedef struct {
 } packet;
 // framefra(8) sizes(5) seq.seq(6) typet(5) data... parity(8)
 // frame sizeseq seqtypet
-const packet NIL_MSG = { 0, 0, 0xb, NULL, 0, 0 };
+const packet NIL_MSG = { 0, 0, invalid, NULL, 0, 0 };
+
 /**
  * @brief calculates parity of message from its data
  * @param msg
@@ -348,6 +349,11 @@ void set_data(packet* msg, uint64_t num){
 	msg->data_p = malloc(msg->size);
 	*(uint64_t*)msg->data_p = num;
 }
+
+void unsetMsg(packet* msg){
+	free(msg->data_p);
+	*msg = NIL_MSG;
+}
 /**
  * @brief Receives a valid packet from raw socket
  * @param sock target socket
@@ -399,6 +405,70 @@ int rec_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
 			msg_start = 0; // starts at [0]
 			//msg_start = frame_msg(buf, buf_n);
 			ended = true;
+		}
+	}
+	if(DEBUG_P)printf("\n");
+	
+	*msg_p = deserialize(&buf[msg_start+1], (buf_n-1) - (msg_start+1) +1);
+
+	return buf_n;
+}
+/**
+ * @brief Receives a valid packet from raw socket
+ * @param sock target socket
+ * @param msg by reference
+ * @param buf previously allocated buffer
+ * @param timeout_sec timeout in secs, if 0, blocks until a packet is received
+ * @return returns -1 if timed out, else, bytes written in buf
+ */
+int peek_packet(int sock, packet* msg_p, uint8_t* buf, int timeout_sec){
+	struct sockaddr saddr;
+	int saddr_len = sizeof(saddr);
+
+	int msg_start;
+	int buf_n = 0;
+	int ended = false;
+	
+	while(!ended){
+		memset(buf, 0, BUF_MAX);
+		
+		struct timeval tv;
+		if(timeout_sec > 0){
+			tv.tv_sec = timeout_sec; tv.tv_usec = 0;
+			while(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval)) < 0){
+				fprintf(stderr, "setsockopt failed\n");
+				sleep(1);
+			}
+		}
+		
+		if(DEBUG_P)printf("recv...");
+		buf_n = recvfrom(sock, buf, BUF_MAX, MSG_PEEK, &saddr, (socklen_t *)&saddr_len);
+		// receive a network packet and copy in to buffer
+		if(DEBUG_P) {
+			printf("%x\t", buf_n);
+			fflush(stdout);
+		}
+		
+		if(timeout_sec > 0){
+			tv.tv_sec = 0; tv.tv_usec = 0;
+			while(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(struct timeval)) < 0){
+				fprintf(stderr, "setsockopt failed");
+				sleep(1);
+			}
+		}
+		
+		// timed out
+		if(buf_n < 1){
+			return buf_n;
+		}
+		// received valid packet
+		if(buf[0] == framing_bits){
+			msg_start = 0; // starts at [0]
+			//msg_start = frame_msg(buf, buf_n);
+			ended = true;
+		} else {
+			// if packet not valid, take it out of queue
+			buf_n = recvfrom(sock, buf, BUF_MAX, 0, &saddr, (socklen_t *)&saddr_len);
 		}
 	}
 	if(DEBUG_P)printf("\n");

@@ -11,67 +11,69 @@
 #include "Protocol.h"
 #include "Socket.h"
 #include "SlidingWindow.h"
-
-#define COMMAND_HIST_SIZE 64
-#define COMMAND_BUF_SIZE 256
+#include "commands.h"
 
 bool parse(Slider* this, packet msg){
 	packet response = NIL_MSG;
 	char fout[COMMAND_BUF_SIZE];
 	uint64_t rec_bytes;
+	bool ret = true;
 	
 	response = talk(this, msg, TIMEOUT);
 	
 	switch(msg.type){
 		case cd:
+			if(response.type != ok){
+				printf("Command on server failed with errno %d", (*(int*)response.data_p));
+			}
+			
 			break;
 			
 		case ls:
+			rec_bytes = receive_data(this, stdout, file_size_B);
+			if(rec_bytes < 1){
+				printf("Receive data failed: wrong response. Try again\n");
+				ret = false;
+				break;
+			}
+			printf("\nbytes transfered = %lu\n", rec_bytes);
+			
 			break;
 			
 		case get:
 			if(response.type != tam){
 				printf("Command failed on server with errno: %d\n", (*(int*)response.data_p));
-				return false;
+				ret = false;
+				break;
 			}
-			unsigned long long file_size_B = *(uint64_t*)response.data_p;
-			printf("File size = %lu\n", *(uint64_t*)response.data_p);
-			printf("File size = %llu\n", file_size_B);
-// https://stackoverflow.com/questions/3992171/how-do-i-programmatically-get-the-free-disk-space-for-a-directory-in-linux
-			// Check if current directory has space
-			struct statvfs currDir;
-			statvfs(".", &currDir);
-			unsigned long long freespace = currDir.f_bsize * currDir.f_bfree;
-			if(freespace < file_size_B){
-				printf("Not enough space on current dir %llu/%llu\n", file_size_B, freespace);
-				msg = NIL_MSG;
-				msg.type = nack;
-				msg = say(this, msg);
-				return false;
-			}
-			memcpy(fout, msg.data_p, msg.size);
-			FILE* stream = fopen(fout, "wb");
+			getC(slider, (char*)msg.data_p, *(uint64_t*)response.data_p);
 			
-			rec_bytes = receive_data(this, stream, file_size_B);
-			if(rec_bytes < 1){
-				printf("Receive data failed: wrong response. Try again\n");
-				fclose(stream);
-				return false;
-			}
-			printf("\nbytes transfered = %lu\n", rec_bytes);
-			fclose(stream);
+			break;
 			
 		case put:
+			if(response.type != ok){
+				printf("Command failed on server with errno: %d\n", (*(int*)response.data_p));
+				ret = false;
+				break;
+			}
+			putC(slider, (char*)msg.data_p);
+			
 			break;
 			
 		default:
-			return false;
+			ret = false;
+			
+			break;
 	}
-	return true;
+	
+	unsetMsg(&response);
+	unsetMsg(&msg);
+	return ret;
 }
 
 msg_type_t console (char** commands, int* lastCom, packet* msg) {
 	char* filename;
+	unsetMsg(msg);
 	msg->type = invalid;
 	while (msg->type == invalid) {
 		*lastCom = mod(*lastCom +1, COMMAND_HIST_SIZE);
@@ -79,6 +81,9 @@ msg_type_t console (char** commands, int* lastCom, packet* msg) {
 		int result = scanf("%[^\n]%*c", commands[*lastCom]);
 		printf("result = %d\n", result);
 		printf("command: %s\n", commands[*lastCom]);
+		if(commands[*lastCom][0] == '!'){ // if local command
+			system(&commands[*lastCom][1]);
+		}
 		// filename is not a copy of command, it points to the same memory
 		msg->type = command_to_type(commands[*lastCom], &filename);
 	}

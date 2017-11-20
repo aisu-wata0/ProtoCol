@@ -16,42 +16,56 @@
 #include "Protocol.h"
 #include "Socket.h"
 #include "SlidingWindow.h"
+#include "commands.h"
 
-void printDetails(struct stat fileStat){
+void printDetails(FILE* stream, struct stat fileStat){
 	struct passwd *pwd;
 	struct group *grp;
+	char detail[64];
 	
-	printf( (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
-    printf( (fileStat.st_mode & S_IRUSR) ? "r" : "-");
-    printf( (fileStat.st_mode & S_IWUSR) ? "w" : "-");
-    printf( (fileStat.st_mode & S_IXUSR) ? "x" : "-");
-    printf( (fileStat.st_mode & S_IRGRP) ? "r" : "-");
-    printf( (fileStat.st_mode & S_IWGRP) ? "w" : "-");
-    printf( (fileStat.st_mode & S_IXGRP) ? "x" : "-");
-    printf( (fileStat.st_mode & S_IROTH) ? "r" : "-");
-    printf( (fileStat.st_mode & S_IWOTH) ? "w" : "-");
-    printf( (fileStat.st_mode & S_IXOTH) ? "x" : "-");
-	printf(" %lu ", fileStat.st_nlink);
+	detail = (S_ISDIR(fileStat.st_mode)) ? "d" : "-";
+	fprintf(stream, detail);
+	detail = (fileStat.st_mode & S_IRUSR) ? "r" : "-";
+	fprintf(stream, detail);
+	detail = (fileStat.st_mode & S_IWUSR) ? "w" : "-";
+	fprintf(stream, detail);
+	detail = (fileStat.st_mode & S_IXUSR) ? "x" : "-";
+	fprintf(stream, detail);
+	detail = (fileStat.st_mode & S_IRGRP) ? "r" : "-";
+	fprintf(stream, detail);
+	detail = (fileStat.st_mode & S_IWGRP) ? "w" : "-";
+	fprintf(stream, detail);
+	detail = (fileStat.st_mode & S_IXGRP) ? "x" : "-";
+	fprintf(stream, detail);
+	detail = (fileStat.st_mode & S_IROTH) ? "r" : "-";
+	fprintf(stream, detail);
+	detail =  (fileStat.st_mode & S_IWOTH) ? "w" : "-";
+	fprintf(stream, detail);
+	detail = (fileStat.st_mode & S_IXOTH) ? "x" : "-";
+	fprintf(stream, detail);
+	fprintf(stream, " %lu ", fileStat.st_nlink);
 	
 	pwd = getpwuid(fileStat.st_uid);
 	if(pwd == NULL) perror("getpwuid");
-	else printf("%s ", pwd->pw_name);
+	else fprintf(stream, "%s ", pwd->pw_name);
 	
 	grp = getgrgid(fileStat.st_gid);
 	if(grp == NULL) perror("getgrpid");
-	printf("%s ", grp->gr_name);
+	fprintf(stream, "%s ", grp->gr_name);
 	
-	printf("%zu\t", fileStat.st_size);
+	fprintf(stream, "%zu\t", fileStat.st_size);
+	
 	struct tm *time;
 	char buffer[200];
 	time = localtime(&fileStat.st_mtime);
 	strftime(buffer, sizeof(buffer), "%b %e %H:%M", time);
-	printf("%s ", buffer);
+	fprintf(stream, "%s ", buffer);
+	
 	return;
 }
 
 packet process(Slider* slider, packet msg){
-	packet my_response = NIL_MSG;
+	packet reply = NIL_MSG;
 	packet nextMsg = NIL_MSG;
 	nextMsg.type = invalid;
 	
@@ -60,43 +74,38 @@ packet process(Slider* slider, packet msg){
 
 	char* commandStr = NULL;
 	bool isCommand = false;
-	isCommand = msg_to_command(msg, &commandStr);	//msgSize = 0, problem
+	isCommand = msg_to_command(msg, &commandStr);
 	
-	if( ! isCommand) return nextMsg;
+	if( ! isCommand)
+		return nextMsg;
 	
-	if(commandStr != NULL) printf("%s\n", commandStr);
+	if(commandStr != NULL)
+		printf("%s\n", commandStr);
 	
 	switch(msg.type){
 		case cd:
 			// https://linux.die.net/man/2/chdir
 			chdir((char*)msg.data_p);
-			
-			if(msg.error){
-				//enviar Nack aonde?
-				//enviar msg aonde?
-				
-				my_response.type = nack;
-				break;
-			}
-			
 			if(errno != 0){
 				switch(errno){
 					case ENOENT:
 						printf("Directory does not exist");
-						set_data(&my_response, inex);
+						set_data(&reply, inex);
 						break;
 					case EACCES:
 						printf("Acces denied");
-						set_data(&my_response, acess);
+						set_data(&reply, acess);
 						break;
 					default:
-						printf("Errno = %d", errno);
+						set_data(&reply, errno);
+						printf("errno = %d", errno);
 				}
-				my_response.type = error;
+				reply.type = error;
+			} else {
+				reply.type = ok;
 			}
 			
-			my_response.type = ok;
-			
+			nextMsg = talk(this, reply, 0);
 			break;
 			
 		case ls:
@@ -129,9 +138,18 @@ packet process(Slider* slider, packet msg){
 			if (dir == NULL) {
 				 // could not open directory
 				fprintf(stderr, "INFO: opendir() errno %d\n", errno);
-				set_data(&my_response, acess);
-				my_response.type = error;
-				//nextMsg = talk(slider, my_response, 0);
+				set_data(&reply, acess);
+				reply.type = error;
+				nextMsg = say(slider, reply);
+				break;
+			}
+			char filename[COMMAND_BUF_SIZE] = ".tmp.ls.txt";
+			stream = fopen(filename, "w");
+			if (stream == NULL) {
+				fprintf(stderr, "INFO: fopen(%s) errno %d\n", filename, errno);
+				set_data(&reply, acess);
+				reply.type = error;
+				nextMsg = say(slider, reply);
 				break;
 			}
 			// for all the files and directories within directory 
@@ -140,53 +158,51 @@ packet process(Slider* slider, packet msg){
 				if(hidden == 0 && ent->d_name[0] == '.')
 					continue;
 				if(list){
-					//sprintf(buf, "%s", ent->d_name);
 					struct stat sb;
 					stat(ent->d_name, &sb);
-					printDetails(sb);
+					printDetails(stream, sb);
 				}
-				printf("%s\n", ent->d_name);
+				fprintf(stream, "%s\n", ent->d_name);
 			}
 			closedir(dir);
-			break;
 			
-		case get:
-			stream = fopen((char*)msg.data_p,"rb");
+			fclose(stream);
+			stream = fopen(filename, "r");
 			if (stream == NULL) {
-				fprintf(stderr, "INFO: fopen() errno %d\n", errno);
-				set_data(&my_response, acess);
-				my_response.type = error;
-				nextMsg = talk(slider, my_response, 0);
-				break;
-			}
-			struct stat sb;
-			if (stat((char*)msg.data_p, &sb) == -1) {
-				fprintf(stderr, "INFO: stat() errno %d\n", errno);
-				set_data(&my_response, acess);
-				my_response.type = error;
-				nextMsg = talk(slider, my_response, 0);
-				fclose(stream);
-				break;
-			}
-			my_response.type = tam;
-			set_data(&my_response, sb.st_size);
-			
-			printf("file size = %lu bytes\n", *(uint64_t*)my_response.data_p);
-			packet msg = talk(slider, my_response, TIMEOUT);
-			if(msg.type != ok){
-				fclose(stream);
+				fprintf(stderr, "INFO: fopen(%s) errno %d\n", filename, errno);
+				set_data(&reply, acess);
+				reply.type = error;
+				nextMsg = say(slider, reply);
 				break;
 			}
 			send_data(slider, stream);
-			fclose(stream);
+			
+			break;
+			
+		case get:
+			nextMsg = putC(slider, (char*)msg.data_p);
 			break;
 			
 		case put:
+			FILE* stream = fopen(fout, "wb");
+			if(stream == NULL){
+				printf("Failed fopen %s with errno = %d\n", fout, errno);
+				reply.type = error;
+				set_data(&reply, access);
+				nextMsg = say(this, reply);
+				
+				break;
+			}
+			reply.type = ok;
+			response = talk(slider, reply, 0);
+			nextMsg = getC(slider,
+				(char*)msg.data_p, *(uint64_t*)response.data_p);
 			break;
 			
 		default:
 			break;
 	}
+	
 	free(commandStr);
 	return nextMsg;
 }
@@ -199,17 +215,19 @@ int dorei(char* device){
 	msg.type = invalid;
 	
 	while(true){
+		/**
 		int test;
+		scanf("%x", &typ);
+		msg.type = typ;
 		char target[256];
-		scanf("%x", &test);
 		scanf("%s", target);
-		msg.type = test;
 		msg.size = strlen(target) + 1;
-		msg.data_p = malloc(msg.size * sizeof(char));
-		strcpy((char*)msg.data_p, target);
-		
+		msg.data_p = malloc(msg.size);
+		memcpy(msg.data_p, target, msg->size);
+		/**/
 		if(msg.type == invalid)
 			recvMsg(&slider, &msg, 0);
+		/**/
 		if(DEBUG_W)printf("Received request: ");
 		if(DEBUG_W)print(msg);
 		
