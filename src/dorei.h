@@ -202,7 +202,7 @@ packet process(Slider* slider, packet msg){
 
 int dorei(char* device){
 	Slider slider;
-	//slider_init(&slider, device);
+	slider_init(&slider, device);
 	
 	packet msg = NIL_MSG;
 	msg.type = invalid;
@@ -222,7 +222,7 @@ int dorei(char* device){
 			packet dummy = NIL_MSG;
 			msg = talk(&slider, dummy, 0);
 		}
-		/**/
+		/**/ 
 		if(DEBUG_W)printf("Received request: ");
 		if(DEBUG_W)print(msg);
 		

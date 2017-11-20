@@ -264,6 +264,7 @@ packet talk(Slider* this, packet msg, int timeout_sec){
 			continue; // send again
 		}
 
+		this->rseq = seq_mod(this->rseq +1);
 		responded = true;
 	}
 

@@ -29,6 +29,10 @@ bool parse(Slider* this, packet msg){
 			break;
 			
 		case ls:
+			if(response.type != ok){
+				printf("Command on other failed with errno %d", (*(int*)response.data_p));
+			}
+			
 			rec_bytes = receive_data(this, stdout);
 			if(rec_bytes < 1){
 				printf("Command failed on other with errno: %d\n", errno);
@@ -66,7 +70,6 @@ bool parse(Slider* this, packet msg){
 	}
 	
 	unsetMsg(&response);
-	unsetMsg(&msg);
 	return succ;
 }
 

@@ -127,7 +127,7 @@ bool is_command(char* command, char* typ, char** target){
 msg_type_t command_to_type(char* command, char** target){
 	trim(command);
 	
-	if(is_command(command, "cd", target)) return cd;
+	if(is_command(command, "cd ", target)) return cd;
 	if(is_command(command, "ls", target)) return ls;
 	if(is_command(command, "get ", target)) return get;
 	if(is_command(command, "put ", target)) return put;

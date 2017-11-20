@@ -131,15 +131,21 @@ void write_to_file(Slider* this, FILE* stream, long long* rec_size, bool* ended)
 /**
  * @brief gives apropriate response to sender about the current window
  */
-void respond(Slider* this){
+packet response(Slider* this){
+	packet msg = NIL_MSG;
+	set_seq(this, &msg);
+	
 	if(DEBUG_W)printf("Response ");
 	if((w_back(&this->window).seq == last_acc(&this->window).seq) || (last_acc(&this->window).type == end)){
 		if(DEBUG_W)printf("ack %x\n", last_acc(&this->window).seq);
-		send_number(this, ack, last_acc(&this->window).seq);
+		msg.type = ack;
+		set_data(&msg, last_acc(&this->window).seq);
 	} else {
 		if(DEBUG_W)printf("nack %x\n", first_err(&this->window).seq);
-		send_number(this, nack, first_err(&this->window).seq);
+		msg.type = nack;
+		set_data(&msg, first_err(&this->window).seq);
 	}
+	return msg;
 }
 /**
  * @brief moves window to start after last accepted message
@@ -231,7 +237,7 @@ long long receive_data(Slider* this, FILE* stream){
 		
 		write_to_file(this, stream, &rec_size, &ended);
 		
-		respond(this);
+		send_msg(this->sock, response(this), this->buf);
 		
 		move_window(this);
 		
@@ -239,6 +245,9 @@ long long receive_data(Slider* this, FILE* stream){
 	}
 	
 	this->rseq = seq_mod(last_acc(&this->window).seq +1);
+	
+	say(this, response(this));
+	
 	return rec_size;
 }
 
