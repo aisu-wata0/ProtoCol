@@ -23,34 +23,24 @@ void printDetails(FILE* stream, struct stat fileStat){
 	struct group *grp;
 	char detail[64];
 	
-	//detail = (S_ISDIR(fileStat.st_mode)) ? "d" : "-";
 	strcpy(detail, (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
 	fprintf(stream, "%s", detail);
-	//detail = (fileStat.st_mode & S_IRUSR) ? "r" : "-";
 	strcpy(detail, (fileStat.st_mode & S_IRUSR) ? "r" : "-");
 	fprintf(stream, "%s", detail);
-	//detail = (fileStat.st_mode & S_IWUSR) ? "w" : "-";
 	strcpy(detail, (fileStat.st_mode & S_IWUSR) ? "w" : "-");
 	fprintf(stream, "%s", detail);
-	//detail = (fileStat.st_mode & S_IXUSR) ? "x" : "-";
 	strcpy(detail, (fileStat.st_mode & S_IXUSR) ? "x" : "-");
 	fprintf(stream, "%s", detail);
-	//detail = (fileStat.st_mode & S_IRGRP) ? "r" : "-";
 	strcpy(detail, (fileStat.st_mode & S_IRGRP) ? "r" : "-");
 	fprintf(stream, "%s", detail);
-	//detail = (fileStat.st_mode & S_IWGRP) ? "w" : "-";
 	strcpy(detail, (fileStat.st_mode & S_IWGRP) ? "w" : "-");
 	fprintf(stream, "%s", detail);
-	//detail = (fileStat.st_mode & S_IXGRP) ? "x" : "-";
 	strcpy(detail, (fileStat.st_mode & S_IXGRP) ? "x" : "-");
 	fprintf(stream, "%s", detail);
-	//detail = (fileStat.st_mode & S_IROTH) ? "r" : "-";
 	strcpy(detail, (fileStat.st_mode & S_IROTH) ? "r" : "-");
 	fprintf(stream, "%s", detail);
-	//detail =  (fileStat.st_mode & S_IWOTH) ? "w" : "-";
 	strcpy(detail, (fileStat.st_mode & S_IWOTH) ? "w" : "-");
 	fprintf(stream, "%s", detail);
-	//detail = (fileStat.st_mode & S_IXOTH) ? "x" : "-";
 	strcpy(detail, (fileStat.st_mode & S_IXOTH) ? "x" : "-");
 	fprintf(stream, "%s", detail);
 	fprintf(stream, " %lu ", fileStat.st_nlink);
@@ -79,7 +69,6 @@ packet process(Slider* slider, packet msg){
 	packet nextMsg = NIL_MSG;
 	packet response = NIL_MSG;
 	nextMsg.type = invalid;
-	char fout[COMMAND_BUF_SIZE];
 	
 	FILE* stream = NULL;
 	DIR *dir;
@@ -97,8 +86,7 @@ packet process(Slider* slider, packet msg){
 	switch(msg.type){
 		case cd:
 			// https://linux.die.net/man/2/chdir
-			chdir((char*)msg.data_p);
-			if(errno != 0){
+			if(chdir((char*)msg.data_p) < 0){
 				switch(errno){
 					case ENOENT:
 						printf("Directory does not exist");
@@ -181,7 +169,7 @@ packet process(Slider* slider, packet msg){
 			fclose(stream);
 			stream = fopen(filename, "r");
 			if (stream == NULL) {
-				fprintf(stderr, "INFO: fopen(%s) errno %d\n", filename, errno);
+				printf("Failed fopen(%s) with errno = %d\n", filename, errno);
 				set_data(&reply, acess);
 				reply.type = error;
 				nextMsg = say(slider, reply);
@@ -197,19 +185,10 @@ packet process(Slider* slider, packet msg){
 			
 		case put:
 			;
-			FILE* stream = fopen(fout, "wb");
-			if(stream == NULL){
-				printf("Failed fopen %s with errno = %d\n", fout, errno);
-				reply.type = error;
-				set_data(&reply, access);
-				nextMsg = say(slider, reply);
-				
-				break;
-			}
 			reply.type = ok;
+			// rec tam message
 			response = talk(slider, reply, 0);
-			nextMsg = getC(slider,
-				(char*)msg.data_p, *(uint64_t*)response.data_p);
+			nextMsg = getC(slider, (char*)msg.data_p, *(uint64_t*)response.data_p);
 			break;
 			
 		default:

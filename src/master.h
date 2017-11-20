@@ -15,7 +15,6 @@
 
 bool parse(Slider* this, packet msg){
 	packet response = NIL_MSG;
-	//char fout[COMMAND_BUF_SIZE];
 	uint64_t rec_bytes;
 	bool ret = true;
 	
@@ -78,14 +77,14 @@ msg_type_t console (char** commands, int* lastCom, packet* msg) {
 	while (msg->type == invalid) {
 		*lastCom = mod(*lastCom +1, COMMAND_HIST_SIZE);
 		printf(" $\n"); // TODO print current remote dir
-		int result = scanf("%[^\n]%*c", commands[*lastCom]);
-		printf("result = %d\n", result);
-		printf("command: %s\n", commands[*lastCom]);
+		int ret = scanf("%[^\n]%*c", commands[*lastCom]);
+		if(ret < 0)
+			fprintf(stderr, "Failed scanf(%s) with errno = %d", "%[^\n]%*c", errno);
+		
 		if(commands[*lastCom][0] == '!'){ // if local command
-			if(commands[*lastCom][1] == 'c'){
-				chdir(&commands[*lastCom][4]);
-			}
-			else system(&commands[*lastCom][1]);
+			int ret = system(&commands[*lastCom][1]);
+			if(ret < 0)
+				fprintf(stderr, "Failed system(%s) with errno = %d", &commands[*lastCom][1], errno);
 		}
 		// filename is not a copy of command, it points to the same memory
 		msg->type = command_to_type(commands[*lastCom], &filename);
@@ -100,7 +99,7 @@ msg_type_t console (char** commands, int* lastCom, packet* msg) {
 
 int master(char* device){
 	Slider slider;
-	//slider_init(&slider, device);
+	slider_init(&slider, device);
 	
 	int lastCom = 0;
 	char** commands;

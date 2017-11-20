@@ -47,29 +47,29 @@ packet putC(Slider* slider, char* filename){
 		fclose(stream);
 		return nextMsg;
 	}
+	// ready to send, inform file size
 	reply.type = tam;
 	set_data(&reply, sb.st_size);
-	
 	printf("file size = %lu bytes\n", *(uint64_t*)reply.data_p);
+	
 	response = talk(slider, reply, TIMEOUT);
 	if(response.type != ok){
 		
 		fclose(stream);
 		return nextMsg;
 	}
+	// other ready to receive
 	send_data(slider, stream);
 	
 	fclose(stream);
 	return nextMsg;
 }
 
-packet getC(Slider* slider, FILE* stream, unsigned long long fileSize) {
+packet getC(Slider* slider, char* fout, unsigned long long fileSize) {
 	packet reply = NIL_MSG;
 	packet nextMsg = NIL_MSG;
 	nextMsg.type = invalid;
 	unsigned long long rec_bytes;
-	
-	stream = NULL;
 	
 	printf("File size = %llu\n", fileSize);
 	// Check if current directory has space
@@ -85,6 +85,17 @@ packet getC(Slider* slider, FILE* stream, unsigned long long fileSize) {
 		return nextMsg;
 	}
 	
+	FILE* stream = fopen(fout, "wb");
+	if (stream == NULL) {
+		printf("Failed fopen(%s) with errno = %d\n", fout, errno);
+		reply.type = error;
+		set_data(&reply, acess);
+		nextMsg = say(slider, reply);
+		
+		return nextMsg;
+	}
+	
+	// everything ok, start sending
 	rec_bytes = receive_data(slider, stream);
 	if(rec_bytes < 1){
 		printf("Receive data failed: wrong response. Try again\n");
