@@ -82,7 +82,10 @@ msg_type_t console (char** commands, int* lastCom, packet* msg) {
 		printf("result = %d\n", result);
 		printf("command: %s\n", commands[*lastCom]);
 		if(commands[*lastCom][0] == '!'){ // if local command
-			system(&commands[*lastCom][1]);
+			if(commands[*lastCom][1] == 'c'){
+				chdir(&commands[*lastCom][4]);
+			}
+			else system(&commands[*lastCom][1]);
 		}
 		// filename is not a copy of command, it points to the same memory
 		msg->type = command_to_type(commands[*lastCom], &filename);
