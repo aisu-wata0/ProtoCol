@@ -74,7 +74,7 @@ int handle_msg(Slider* this, packet msg){
 	}
 	
 	if( !msg.error ){
-		if( ! (msg.type == data || msg.type == end)){
+		if( ! isData(msg)){
 			fprintf(stderr, "received a message of wrong type (%x) on data transfer\n", msg.type);
 		}
 		int msg_pos = seq_to_i(&this->window, msg.seq);
@@ -199,7 +199,7 @@ long receive_data(Slider* this, FILE* stream, long data_size){
 	read_msg(&msg);
 	*/
 	if(DEBUG_W)print(msg);
-	if((msg.type != data) && (msg.type != end)){
+	if( ! isData(msg)){
 		return -1;
 	}
 	handle_msg(this, msg);
@@ -212,7 +212,8 @@ long receive_data(Slider* this, FILE* stream, long data_size){
 		// while there's packets on stream
 		while(buf_size > 0){
 			if(DEBUG_W)print(msg);
-			if((msg.type != data) && (msg.type != end)){
+			if( ! isData(msg)){
+				this->rseq = seq_mod(last_acc(&this->window).seq +1);
 				return -1;
 			}
 			handle_msg(this, msg);

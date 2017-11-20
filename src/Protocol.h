@@ -45,6 +45,10 @@ typedef enum msg_type {
 	nack = 0xf,
 } msg_type_t;
 
+bool isData(packet msg){
+	return (msg.type == data || msg.type == screen || msg.type == end);
+}
+
 typedef enum err_code {
 	inex = 0x1,
 	acess = 0x2,
