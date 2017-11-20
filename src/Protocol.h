@@ -511,6 +511,8 @@ int try_packet(int sock, packet* msg_p, uint8_t* buf){
  * @return send() return value
  */
 int send_msg(int sock, packet msg, uint8_t* buf){
+	if(msg.type == invalid)
+		return 0;
 	int buf_n = serialize(msg, buf);
 	return send(sock, buf, buf_n, 0);
 }

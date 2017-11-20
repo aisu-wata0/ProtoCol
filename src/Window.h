@@ -219,41 +219,13 @@ void timedout(Slider* this){
 	this->sseq = seq_mod(this->sseq -1);
 }
 
-int recvMsg(Slider* this, packet* msg, int timeout_sec){
-	int buf_n = rec_packet(this->sock, msg, this->buf, timeout_sec);
-	if(buf_n < 1){
-		if(DEBUG_W)printf("Timed out.\n");
-		return buf_n;
-	}
-	if(DEBUG_W)printf("Received:\n");
-	if(DEBUG_W)print(*msg);
-
-	if(msg->seq == seq_mod(this->rseq -1)){
-		if(DEBUG_W)printf("\tINFO: Timeout infered from recv seq, this->rseq=%hhx;\n", this->rseq);
-		this->rseq = msg->seq;
-		timedout(this);
-	}
-
-	if(seq_after(this->rseq, msg->seq)){
-		if(DEBUG_W)printf("msg.seq too low, this->rseq=%hhx;", this->rseq);
-		// return -2;
-	}
-
-	if(this->rseq != msg->seq){
-		if(DEBUG_W)printf("\tWARN: this->rseq=%x\n", this->rseq);
-		this->rseq = msg->seq;
-	}
-
-	this->rseq = seq_mod(this->rseq +1);
-
-	return buf_n;
-}
 /**
  * @brief Repeats message until valid response arrives
  */
 packet talk(Slider* this, packet msg, int timeout_sec){
 	packet response = NIL_MSG;
 	bool responded = false;
+	bool nacked = false;
 
 	set_seq(this, &msg);
 
@@ -274,20 +246,24 @@ packet talk(Slider* this, packet msg, int timeout_sec){
 			if(DEBUG_W)print(response);
 			continue; // send again
 		}
-
+		
 		if (response.type == nack) {
 			if(DEBUG_W)printf("Received nack \t");
+			if(! nacked){
+				nacked = true;
+				this->rseq = seq_mod(this->rseq +1);
+			}
 			continue; // send again
 		} else
 		if (response.error) {
-			if(DEBUG_W)printf("timeout \t");
+			if(DEBUG_W)printf("received message with error, will send nack \t");
 			msg = NIL_MSG;
+			set_seq(this, &msg);
 			msg.type = nack;
 			set_data(&msg, this->rseq);
 			continue; // send again
 		}
 
-		this->rseq = seq_mod(this->rseq +1);
 		responded = true;
 	}
 

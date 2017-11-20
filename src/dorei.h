@@ -225,8 +225,10 @@ int dorei(char* device){
 		msg.data_p = malloc(msg.size);
 		memcpy(msg.data_p, target, msg->size);
 		/**/
-		if(msg.type == invalid)
-			recvMsg(&slider, &msg, 0);
+		if(msg.type == invalid){
+			packet dummy = NIL_MSG;
+			msg = talk(&slider, dummy, 0);
+		}
 		/**/
 		if(DEBUG_W)printf("Received request: ");
 		if(DEBUG_W)print(msg);
