@@ -80,16 +80,18 @@ packet next_packet(Slider* this, FILE* stream){
 /**
  * @brief fill window from to w_end, from always gets filled
  */
-void fill_window(Slider* this, int from, FILE* stream, bool* ended, bool* eof){
+long fill_window(Slider* this, int from, FILE* stream, bool* sent, bool* eof){
+	long sentBytes = 0;
 	// 3 4 5 6	receives nack 5, given: start = 0; [0].seq == 3
 	// 7 8 5 6	start = 2; from 0 to <start, new packets into window
 	int i = from;
 	do {
-		// handle old msg
+		// clear sent msgs
+		sentBytes += this->window.arr[i].size;
 		free(this->window.arr[i].data_p);
 		this->window.arr[i].data_p = NULL;
 		if(this->window.arr[i].type == end){
-			*ended = true;
+			*sent = true;
 			break;
 		}
 		// queue next
@@ -104,12 +106,14 @@ void fill_window(Slider* this, int from, FILE* stream, bool* ended, bool* eof){
 		}
 		/*TMP*/
 		if(this->window.arr[i].seq != i_to_seq(&this->window, i)){
-			if(DEBUG_W)fprintf(stderr,"ERROR: seqs should be equal! %x != %x\n", this->window.arr[i].seq, i_to_seq(&this->window, i));
+			if(DEBUG_W) fprintf(stderr,"ERROR: seqs should be equal! %x != %x\n", this->window.arr[i].seq, i_to_seq(&this->window, i));
 			this->window.arr[i].seq = i_to_seq(&this->window, i);
 		}/**/
 		
 		i = w_mod(i+1);
 	} while (i != w_mod(w_end(&this->window) +1));
+	
+	return sentBytes;
 }
 /**
  * @brief sets window messages as sent
@@ -149,7 +153,7 @@ void send_window(Slider* this){
  * @brief handles acks and nacks, setting the start of the window and nacked messages as unsent
  * @return true if window needs to be filled with new messages
  */
-int handle_response(Window* this, packet response){
+int handle_response(Window* this, packet response, bool* ended){
 	this->acc = this->start;
 	int response_seq = response.data_p[0];
 	
@@ -164,15 +168,18 @@ int handle_response(Window* this, packet response){
 				return false;
 			}
 			break;
-		case ack:
 			
+		case ack:
 			// 3 4 5 6	receives ack 5, given: start = 0; [0].seq == 3
 			// 7 8 9 6	start = 3; from 0 to <start, new packets into window
 			// 7 8 9 A	receives ack 6;	start = 0; from 0 to <0
 			this->start = w_mod(seq_to_i(this, response_seq) +1);
 			break;
+		case error:
+			errno = (*(int*)response.data_p);
 		default:
 			fprintf(stderr, "WARN: received a response that isn't ack nor nack in data transfer\n");
+			*ended = true;
 			return false;
 	}
 	
@@ -181,25 +188,26 @@ int handle_response(Window* this, packet response){
 /**
  * @brief Sends data from file stream until EOF
  */
-int send_data(Slider* this, FILE* stream){
+long send_data(Slider* this, FILE* stream){
 	packet response;
+	long sentData = 0;
 	w_init(&this->window, this->rseq);
 	
 	this->window.acc = this->window.start;
 	
 	bool fill;
-	bool ended = false;
+	bool sent = false;
 	bool eof = false;
 	// startup
-	fill_window(this, this->window.acc, stream, &ended, &eof);
+	sentData += fill_window(this, this->window.acc, stream, &sent, &eof);
 	
-	while(!ended){
+	while(!sent){
 		if(DEBUG_W)print_window(this);
 		send_window(this);
 		/**/
 		// with timeout
 		int buf_n = sl_recv(this, &response, TIMEOUT);
-		if(buf_n < 1 || ( (response.type != ack) && (response.type != nack) ) ){
+		if(buf_n < 1 || !isResponse(response)){
 			continue; // timeout or invalid reply, send window again
 		}
 		/*DEBUG*
@@ -216,18 +224,18 @@ int send_data(Slider* this, FILE* stream){
 		if(DEBUG_W)printf("handling response\n");
 		if(DEBUG_W)print(response);
 		
-		fill = handle_response(&this->window, response);
+		fill = handle_response(&this->window, response, &sent);
 		
 		if(fill){
-			fill_window(this, this->window.acc, stream, &ended, &eof);
+			sentData += fill_window(this, this->window.acc, stream, &sent, &eof);
 		}
 	}
 	
-	if(this->sseq != seq_mod(w_back(&this->window).seq +1)){
-		fprintf(stderr, "WARN: End of send_data, seqs should be equal! %x != %x\n", this->sseq, seq_mod(w_back(&this->window).seq +1));
+	if(DEBUG_W && (this->sseq != seq_mod(w_back(&this->window).seq +1))){
+		fprintf(stderr, "WARN: End of send_data, seqs should be equal %x != %x\n", this->sseq, seq_mod(w_back(&this->window).seq +1));
 	}
 	
-	return true;
+	return sentData;
 }
 
 #endif

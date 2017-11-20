@@ -73,43 +73,37 @@ int handle_msg(Slider* this, packet msg){
 		msg.error = true;
 	}
 	
-	if( !msg.error ){
-		if( ! isData(msg)){
-			fprintf(stderr, "received a message of wrong type (%x) on data transfer\n", msg.type);
-		}
-		int msg_pos = seq_to_i(&this->window, msg.seq);
-		// if hadn't received this msg yet
-		if(this->window.arr[msg_pos].error){
-			this->window.arr[msg_pos] = msg;
-			// update which is the last message received without errors in the sequence
-			while( (indexes_remain(&this->window) > 0) && !(this->window.arr[w_mod(this->window.acc + 1)].error) ){
-			// [0 _ 2 3 4], acc == 0, receive 1
-			// [0 1 2 3 4], acc == 4 == w_end
-				this->window.acc = w_mod(this->window.acc +1);
-			}
-			if(DEBUG_W)printf("added msg to window, new acc=%x, last_acc.seq=%x\n", this->window.acc, last_acc(&this->window).seq);
-			
-			return true;
-		}
-		if(DEBUG_W)printf("had already received this message\n");
-		if(msg.data_p == this->window.arr[msg_pos].data_p){
-			msg.data_p = NULL;
-		}
+	int msg_pos = seq_to_i(&this->window, msg.seq);
+	// if msg with error, or already received this seq
+	if(msg.error || !this->window.arr[msg_pos].error){
+		if(DEBUG_W) printf("message not added\n");
+		if(DEBUG_W) if(!this->window.arr[msg_pos].error) printf("message was already recvd\n");
+		if(DEBUG_W) if(msg.data_p == this->window.arr[msg_pos].data_p) printf("WARN: Message duplicate\n");
+		// free only if not duplicate pointer
+		if(msg.data_p != this->window.arr[msg_pos].data_p)
+			free(msg.data_p);
+		msg.data_p = NULL;
+		
+		return false;
 	}
+	// insert message
+	this->window.arr[msg_pos] = msg;
+	// update which is the last message received without errors in the sequence
+	while( (indexes_remain(&this->window) > 0) && !(this->window.arr[w_mod(this->window.acc + 1)].error) ){
+	// [0 _ 2 3 4], acc == 0, receive 1
+	// [0 1 2 3 4], acc == 4 == w_end
+		this->window.acc = w_mod(this->window.acc +1);
+	}
+	if(DEBUG_W)printf("added msg to window, new acc=%x, last_acc.seq=%x\n", this->window.acc, last_acc(&this->window).seq);
 	
-	if(DEBUG_W)printf("message not added\n");
-	
-	free(msg.data_p);
-	msg.data_p = NULL;
-	
-	return false;
+	return true;
 }
 /**
  * @brief writes data from received accepted messages to file stream
  * @param rec_size is incremented by the size of the msgs written
  * @param ended setted to true if reached file end msg
  */
-void write_to_file(Slider* this, FILE* stream, long* rec_size, bool* ended){
+void write_to_file(Slider* this, FILE* stream, long long* rec_size, bool* ended){
 	int msgs_to_write = seq_mod( last_acc(&this->window).seq +1 - w_front(&this->window).seq );
 	// has at least one msg to write
 	if( msgs_to_write > 0 ){
@@ -125,7 +119,7 @@ void write_to_file(Slider* this, FILE* stream, long* rec_size, bool* ended){
 			//fwrite(this->window.arr[it].data_p, 1, this->window.arr[it].size, stream);
 			fwrite(this->window.arr[it].data_p, this->window.arr[it].size, 1, stream);
 			
-			if(DEBUG_W)printf("addr = %lx\n", (uint64_t)this->window.arr[it].data_p);
+			if(DEBUG_W)printf("addr = %lx; ", (uint64_t)this->window.arr[it].data_p);
 			if(DEBUG_W)printf("data = %s\n", (char*)this->window.arr[it].data_p);
 			*rec_size += this->window.arr[it].size;
 			
@@ -183,10 +177,10 @@ void move_window(Slider* this){
  * @param data_size to receive
  * @return rec_size: size of the data received
  */
-long receive_data(Slider* this, FILE* stream){
+long long receive_data(Slider* this, FILE* stream){
 	packet msg;
 	bool ended = false;
-	long rec_size = 0;
+	long long rec_size = 0;
 	w_init(&this->window, this->rseq);
 	
 	int buf_size;
@@ -200,7 +194,8 @@ long receive_data(Slider* this, FILE* stream){
 	*/
 	if(DEBUG_W)print(msg);
 	if( ! isData(msg)){
-		return -1;
+		errno = (*(int*)msg.data_p);
+		return rec_size;
 	}
 	handle_msg(this, msg);
 	
@@ -214,7 +209,7 @@ long receive_data(Slider* this, FILE* stream){
 			if(DEBUG_W)print(msg);
 			if( ! isData(msg)){
 				this->rseq = seq_mod(last_acc(&this->window).seq +1);
-				return -1;
+				return rec_size;
 			}
 			handle_msg(this, msg);
 			

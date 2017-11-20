@@ -16,14 +16,14 @@
 bool parse(Slider* this, packet msg){
 	packet response = NIL_MSG;
 	uint64_t rec_bytes;
-	bool ret = true;
+	bool succ = true;
 	
 	response = talk(this, msg, TIMEOUT);
 	
 	switch(msg.type){
 		case cd:
 			if(response.type != ok){
-				printf("Command on server failed with errno %d", (*(int*)response.data_p));
+				printf("Command on other failed with errno %d", (*(int*)response.data_p));
 			}
 			
 			break;
@@ -31,8 +31,8 @@ bool parse(Slider* this, packet msg){
 		case ls:
 			rec_bytes = receive_data(this, stdout);
 			if(rec_bytes < 1){
-				printf("Receive data failed: wrong response. Try again\n");
-				ret = false;
+				printf("Command failed on other with errno: %d\n", errno);
+				succ = false;
 				break;
 			}
 			printf("\nbytes transfered = %lu\n", rec_bytes);
@@ -41,8 +41,8 @@ bool parse(Slider* this, packet msg){
 			
 		case get:
 			if(response.type != tam){
-				printf("Command failed on server with errno: %d\n", (*(int*)response.data_p));
-				ret = false;
+				printf("Command failed on other with errno: %d\n", (*(int*)response.data_p));
+				succ = false;
 				break;
 			}
 			getC(this, (char*)msg.data_p, *(uint64_t*)response.data_p);
@@ -51,8 +51,8 @@ bool parse(Slider* this, packet msg){
 			
 		case put:
 			if(response.type != ok){
-				printf("Command failed on server with errno: %d\n", (*(int*)response.data_p));
-				ret = false;
+				printf("Command failed on other with errno: %d\n", (*(int*)response.data_p));
+				succ = false;
 				break;
 			}
 			putC(this, (char*)msg.data_p);
@@ -60,20 +60,20 @@ bool parse(Slider* this, packet msg){
 			break;
 			
 		default:
-			ret = false;
+			succ = false;
 			
 			break;
 	}
 	
 	unsetMsg(&response);
 	unsetMsg(&msg);
-	return ret;
+	return succ;
 }
 
 msg_type_t console (char** commands, int* lastCom, packet* msg) {
 	char* filename;
 	unsetMsg(msg);
-	msg->type = invalid;
+	
 	while (msg->type == invalid) {
 		*lastCom = mod(*lastCom +1, COMMAND_HIST_SIZE);
 		printf(" $\n"); // TODO print current remote dir
@@ -81,13 +81,15 @@ msg_type_t console (char** commands, int* lastCom, packet* msg) {
 		if(ret < 0)
 			fprintf(stderr, "Failed scanf(%s) with errno = %d", "%[^\n]%*c", errno);
 		
-		if(commands[*lastCom][0] == '!'){ // if local command
+		// if local command
+		if(commands[*lastCom][0] == '!'){
 			int ret = system(&commands[*lastCom][1]);
 			if(ret < 0)
 				fprintf(stderr, "Failed system(%s) with errno = %d", &commands[*lastCom][1], errno);
+		} else { // if other command
+			// filename is not a copy of command, it points to the same memory
+			msg->type = command_to_type(commands[*lastCom], &filename);
 		}
-		// filename is not a copy of command, it points to the same memory
-		msg->type = command_to_type(commands[*lastCom], &filename);
 	}
 	if (strlen(filename) > 0) {
 		msg->size = strlen(filename)+1; // +1 null-terminator
@@ -108,19 +110,7 @@ int master(char* device){
 		commands[i] = malloc(COMMAND_BUF_SIZE*sizeof(char));
 	
 	packet msg = NIL_MSG;
-	//int com_i = 0;
 	
-	// TODO: first thing when starting, send "cd ." command until you get a response
-	// server will send on the data_p the dir after the cd command (current dir on server)
-	// curr dir will be printed on the console (function below)
-	
-	/* TODO change scanf to getch
-	 * read char by char and append them to command, if its \n, append "\0"
-	 * goal: if up arrow pressed, printf("\33[2K\r"); erases current written line
-	 * go back 1 in command history:
-	 * com_i = mod(com_i -1, COMMAND_HIST_SIZE)
-	 * printf("%s", command[com_i]);
-	 * https://stackoverflow.com/questions/10463201/getch-and-arrow-codes */
 	while(console(commands, &lastCom, &msg) != end){
 		parse(&slider, msg);
 	}

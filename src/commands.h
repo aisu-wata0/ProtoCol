@@ -54,12 +54,14 @@ packet putC(Slider* slider, char* filename){
 	
 	response = talk(slider, reply, TIMEOUT);
 	if(response.type != ok){
-		
 		fclose(stream);
 		return nextMsg;
 	}
-	// other ready to receive
-	send_data(slider, stream);
+	// other is ready to receive
+	long sentB = send_data(slider, stream);
+	printf("sent %ld/%ld bytes", sentB, sb.st_size);
+	if(sentB != sb.st_size)
+		printf("Command failed on other with errno: %d\n", errno);
 	
 	fclose(stream);
 	return nextMsg;
@@ -98,7 +100,7 @@ packet getC(Slider* slider, char* fout, unsigned long long fileSize) {
 	// everything ok, start sending
 	rec_bytes = receive_data(slider, stream);
 	if(rec_bytes < 1){
-		printf("Receive data failed: wrong response. Try again\n");
+		printf("Command failed on other with errno: %d\n", errno);
 		
 		fclose(stream);
 		return nextMsg;

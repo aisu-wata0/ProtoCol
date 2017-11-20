@@ -175,7 +175,8 @@ packet process(Slider* slider, packet msg){
 				nextMsg = say(slider, reply);
 				break;
 			}
-			send_data(slider, stream);
+			long sentB = send_data(slider, stream); // TODO return
+			printf("sent %ld bytes", sentB);
 			
 			break;
 			

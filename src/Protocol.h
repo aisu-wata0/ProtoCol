@@ -191,6 +191,9 @@ bool isData(packet msg){
 	return (msg.type == data || msg.type == screen || msg.type == end);
 }
 
+bool isResponse(packet response){
+	return (response.type == ack) || (response.type == nack) || (response.type == error);
+}
 /**
  * @brief calculates parity of message from its data
  * @param msg
