@@ -87,7 +87,9 @@ long fill_window(Slider* this, int from, FILE* stream, bool* sent, bool* eof){
 	int i = from;
 	do {
 		// clear sent msgs
-		sentBytes += this->window.arr[i].size;
+		if(this->window.arr[i].data_p != NULL){
+			sentBytes += this->window.arr[i].size;
+		}
 		free(this->window.arr[i].data_p);
 		this->window.arr[i].data_p = NULL;
 		if(this->window.arr[i].type == end){
