@@ -67,8 +67,9 @@ packet getC(Slider* slider, FILE* stream, unsigned long long fileSize) {
 	packet reply = NIL_MSG;
 	packet nextMsg = NIL_MSG;
 	nextMsg.type = invalid;
+	unsigned long long rec_bytes;
 	
-	FILE* stream = NULL;
+	stream = NULL;
 	
 	printf("File size = %llu\n", fileSize);
 	// Check if current directory has space
@@ -79,19 +80,19 @@ packet getC(Slider* slider, FILE* stream, unsigned long long fileSize) {
 		printf("Not enough space on current dir %llu/%llu\n", fileSize, freespace);
 		reply.type = error;
 		set_data(&reply, space);
-		nextMsg = say(this, reply);
+		nextMsg = say(slider, reply);
 		
 		return nextMsg;
 	}
 	
-	rec_bytes = receive_data(this, stream, fileSize);
+	rec_bytes = receive_data(slider, stream);
 	if(rec_bytes < 1){
 		printf("Receive data failed: wrong response. Try again\n");
 		
 		fclose(stream);
 		return nextMsg;
 	}
-	printf("\nbytes transfered = %lu\n", rec_bytes);
+	printf("\nbytes transfered = %llu\n", rec_bytes);
 	
 	fclose(stream);
 	return nextMsg;

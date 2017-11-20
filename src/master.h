@@ -15,7 +15,7 @@
 
 bool parse(Slider* this, packet msg){
 	packet response = NIL_MSG;
-	char fout[COMMAND_BUF_SIZE];
+	//char fout[COMMAND_BUF_SIZE];
 	uint64_t rec_bytes;
 	bool ret = true;
 	
@@ -30,7 +30,7 @@ bool parse(Slider* this, packet msg){
 			break;
 			
 		case ls:
-			rec_bytes = receive_data(this, stdout, file_size_B);
+			rec_bytes = receive_data(this, stdout);
 			if(rec_bytes < 1){
 				printf("Receive data failed: wrong response. Try again\n");
 				ret = false;
@@ -46,7 +46,7 @@ bool parse(Slider* this, packet msg){
 				ret = false;
 				break;
 			}
-			getC(slider, (char*)msg.data_p, *(uint64_t*)response.data_p);
+			getC(this, (char*)msg.data_p, *(uint64_t*)response.data_p);
 			
 			break;
 			
@@ -56,7 +56,7 @@ bool parse(Slider* this, packet msg){
 				ret = false;
 				break;
 			}
-			putC(slider, (char*)msg.data_p);
+			putC(this, (char*)msg.data_p);
 			
 			break;
 			
@@ -97,7 +97,7 @@ msg_type_t console (char** commands, int* lastCom, packet* msg) {
 
 int master(char* device){
 	Slider slider;
-	slider_init(&slider, device);
+	//slider_init(&slider, device);
 	
 	int lastCom = 0;
 	char** commands;

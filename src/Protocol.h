@@ -45,10 +45,6 @@ typedef enum msg_type {
 	nack = 0xf,
 } msg_type_t;
 
-bool isData(packet msg){
-	return (msg.type == data || msg.type == screen || msg.type == end);
-}
-
 typedef enum err_code {
 	inex = 0x1,
 	acess = 0x2,
@@ -190,6 +186,10 @@ typedef struct {
 // framefra(8) sizes(5) seq.seq(6) typet(5) data... parity(8)
 // frame sizeseq seqtypet
 const packet NIL_MSG = { 0, 0, invalid, NULL, 0, 0 };
+
+bool isData(packet msg){
+	return (msg.type == data || msg.type == screen || msg.type == end);
+}
 
 /**
  * @brief calculates parity of message from its data

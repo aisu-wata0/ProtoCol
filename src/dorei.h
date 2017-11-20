@@ -23,26 +23,36 @@ void printDetails(FILE* stream, struct stat fileStat){
 	struct group *grp;
 	char detail[64];
 	
-	detail = (S_ISDIR(fileStat.st_mode)) ? "d" : "-";
-	fprintf(stream, detail);
-	detail = (fileStat.st_mode & S_IRUSR) ? "r" : "-";
-	fprintf(stream, detail);
-	detail = (fileStat.st_mode & S_IWUSR) ? "w" : "-";
-	fprintf(stream, detail);
-	detail = (fileStat.st_mode & S_IXUSR) ? "x" : "-";
-	fprintf(stream, detail);
-	detail = (fileStat.st_mode & S_IRGRP) ? "r" : "-";
-	fprintf(stream, detail);
-	detail = (fileStat.st_mode & S_IWGRP) ? "w" : "-";
-	fprintf(stream, detail);
-	detail = (fileStat.st_mode & S_IXGRP) ? "x" : "-";
-	fprintf(stream, detail);
-	detail = (fileStat.st_mode & S_IROTH) ? "r" : "-";
-	fprintf(stream, detail);
-	detail =  (fileStat.st_mode & S_IWOTH) ? "w" : "-";
-	fprintf(stream, detail);
-	detail = (fileStat.st_mode & S_IXOTH) ? "x" : "-";
-	fprintf(stream, detail);
+	//detail = (S_ISDIR(fileStat.st_mode)) ? "d" : "-";
+	strcpy(detail, (S_ISDIR(fileStat.st_mode)) ? "d" : "-");
+	fprintf(stream, "%s", detail);
+	//detail = (fileStat.st_mode & S_IRUSR) ? "r" : "-";
+	strcpy(detail, (fileStat.st_mode & S_IRUSR) ? "r" : "-");
+	fprintf(stream, "%s", detail);
+	//detail = (fileStat.st_mode & S_IWUSR) ? "w" : "-";
+	strcpy(detail, (fileStat.st_mode & S_IWUSR) ? "w" : "-");
+	fprintf(stream, "%s", detail);
+	//detail = (fileStat.st_mode & S_IXUSR) ? "x" : "-";
+	strcpy(detail, (fileStat.st_mode & S_IXUSR) ? "x" : "-");
+	fprintf(stream, "%s", detail);
+	//detail = (fileStat.st_mode & S_IRGRP) ? "r" : "-";
+	strcpy(detail, (fileStat.st_mode & S_IRGRP) ? "r" : "-");
+	fprintf(stream, "%s", detail);
+	//detail = (fileStat.st_mode & S_IWGRP) ? "w" : "-";
+	strcpy(detail, (fileStat.st_mode & S_IWGRP) ? "w" : "-");
+	fprintf(stream, "%s", detail);
+	//detail = (fileStat.st_mode & S_IXGRP) ? "x" : "-";
+	strcpy(detail, (fileStat.st_mode & S_IXGRP) ? "x" : "-");
+	fprintf(stream, "%s", detail);
+	//detail = (fileStat.st_mode & S_IROTH) ? "r" : "-";
+	strcpy(detail, (fileStat.st_mode & S_IROTH) ? "r" : "-");
+	fprintf(stream, "%s", detail);
+	//detail =  (fileStat.st_mode & S_IWOTH) ? "w" : "-";
+	strcpy(detail, (fileStat.st_mode & S_IWOTH) ? "w" : "-");
+	fprintf(stream, "%s", detail);
+	//detail = (fileStat.st_mode & S_IXOTH) ? "x" : "-";
+	strcpy(detail, (fileStat.st_mode & S_IXOTH) ? "x" : "-");
+	fprintf(stream, "%s", detail);
 	fprintf(stream, " %lu ", fileStat.st_nlink);
 	
 	pwd = getpwuid(fileStat.st_uid);
@@ -67,7 +77,9 @@ void printDetails(FILE* stream, struct stat fileStat){
 packet process(Slider* slider, packet msg){
 	packet reply = NIL_MSG;
 	packet nextMsg = NIL_MSG;
+	packet response = NIL_MSG;
 	nextMsg.type = invalid;
+	char fout[COMMAND_BUF_SIZE];
 	
 	FILE* stream = NULL;
 	DIR *dir;
@@ -105,7 +117,7 @@ packet process(Slider* slider, packet msg){
 				reply.type = ok;
 			}
 			
-			nextMsg = talk(this, reply, 0);
+			nextMsg = talk(slider, reply, 0);
 			break;
 			
 		case ls:
@@ -184,12 +196,13 @@ packet process(Slider* slider, packet msg){
 			break;
 			
 		case put:
+			;
 			FILE* stream = fopen(fout, "wb");
 			if(stream == NULL){
 				printf("Failed fopen %s with errno = %d\n", fout, errno);
 				reply.type = error;
 				set_data(&reply, access);
-				nextMsg = say(this, reply);
+				nextMsg = say(slider, reply);
 				
 				break;
 			}

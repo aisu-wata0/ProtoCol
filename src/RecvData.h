@@ -183,7 +183,7 @@ void move_window(Slider* this){
  * @param data_size to receive
  * @return rec_size: size of the data received
  */
-long receive_data(Slider* this, FILE* stream, long data_size){
+long receive_data(Slider* this, FILE* stream){
 	packet msg;
 	bool ended = false;
 	long rec_size = 0;
@@ -241,9 +241,6 @@ long receive_data(Slider* this, FILE* stream, long data_size){
 		move_window(this);
 		
 		if(DEBUG_W)print_slider(this);
-	}
-	if(rec_size < data_size){
-		fprintf(stderr, "File transfer error, received %lu/%lu bytes", rec_size, data_size);
 	}
 	
 	this->rseq = seq_mod(last_acc(&this->window).seq +1);
