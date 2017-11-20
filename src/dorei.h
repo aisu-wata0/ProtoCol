@@ -101,9 +101,11 @@ packet process(Slider* slider, packet msg){
 						printf("errno = %d", errno);
 				}
 				reply.type = error;
-			} else {
-				reply.type = ok;
+				nextMsg = say(slider, reply);
+				break;
 			}
+			
+			reply.type = ok;
 			
 			nextMsg = talk(slider, reply, 0);
 			break;
@@ -175,6 +177,13 @@ packet process(Slider* slider, packet msg){
 				nextMsg = say(slider, reply);
 				break;
 			}
+			
+			reply.type = ok;
+			response = talk(slider, reply, 0);
+			if(response.type != ok){
+				break;
+			}
+			
 			long sentB = send_data(slider, stream); // TODO return
 			printf("sent %ld bytes", sentB);
 			
@@ -209,18 +218,17 @@ int dorei(char* device){
 	
 	while(true){
 		/**
-		int test;
+		int typ;
 		scanf("%x", &typ);
 		msg.type = typ;
 		char target[256];
 		scanf("%s", target);
 		msg.size = strlen(target) + 1;
 		msg.data_p = malloc(msg.size);
-		memcpy(msg.data_p, target, msg->size);
+		memcpy(msg.data_p, target, msg.size);
 		/**/
 		if(msg.type == invalid){
-			packet dummy = NIL_MSG;
-			msg = talk(&slider, dummy, 0);
+			msg = receiveMsg(&slider);
 		}
 		/**/ 
 		if(DEBUG_W)printf("Received request: ");
