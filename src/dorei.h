@@ -159,6 +159,8 @@ packet process(Slider* slider, packet msg){
 			while ((ent = readdir(dir)) != NULL) {
 				if(hidden == 0 && ent->d_name[0] == '.')
 					continue;
+				if(strcmp(ent->d_name, filename) == 0)
+					continue;
 				if(list){
 					struct stat sb;
 					stat(ent->d_name, &sb);
@@ -175,17 +177,22 @@ packet process(Slider* slider, packet msg){
 				set_data(&reply, acess);
 				reply.type = error;
 				nextMsg = say(slider, reply);
+				remove(filename);
 				break;
 			}
 			
 			reply.type = ok;
 			response = talk(slider, reply, 0);
 			if(response.type != ok){
+				remove(filename);
 				break;
 			}
 			
 			long sentB = send_data(slider, stream); // TODO return
 			printf("sent %ld bytes", sentB);
+			
+			fclose(stream);
+			remove(filename);
 			
 			break;
 			
@@ -218,11 +225,15 @@ int dorei(char* device){
 	
 	while(true){
 		/**
-		int typ;
-		scanf("%x", &typ);
+		int typ, res;
+		res = scanf("%x", &typ);
+		if(res < 0)
+			perror("scanf()");
 		msg.type = typ;
 		char target[256];
-		scanf("%s", target);
+		res = scanf("%s", target);
+		if(res < 0)
+			perror("scanf()");
 		msg.size = strlen(target) + 1;
 		msg.data_p = malloc(msg.size);
 		memcpy(msg.data_p, target, msg.size);
