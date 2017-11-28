@@ -188,7 +188,7 @@ packet process(Slider* slider, packet msg){
 				break;
 			}
 			
-			long sentB = send_data(slider, stream); // TODO return
+			long sentB = send_data(slider, stream);
 			printf("sent %ld bytes", sentB);
 			
 			fclose(stream);

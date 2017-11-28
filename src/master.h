@@ -79,7 +79,7 @@ msg_type_t console (char** commands, int* lastCom, packet* msg) {
 	
 	while (msg->type == invalid) {
 		*lastCom = mod(*lastCom +1, COMMAND_HIST_SIZE);
-		printf(" $\n"); // TODO print current remote dir
+		printf(" $\n");
 		int ret = scanf("%[^\n]%*c", commands[*lastCom]);
 		if(ret < 0)
 			fprintf(stderr, "Failed scanf(%s) with errno = %d", "%[^\n]%*c", errno);

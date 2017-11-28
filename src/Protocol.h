@@ -274,11 +274,11 @@ int serialize(packet msg, uint8_t* buf){
 		buf_n += 1;
 		buf[buf_n-1] = parity(msg);
 	}
-	// TMP
-	if(true)printf("=== serializing %hhx %hhx %hhx \t", buf[0], buf[1], buf[2]);
-	if(true)printf("msg.seq %x == %x buf_seq\n", msg.seq, ((buf[1] & 0b111) << 3) | (buf[2] >> 5));
-	if(msg.seq != ( ((buf[1] & 0b111) << 3) | (buf[2] >> 5) ) ){
-		if(true)printf("((buf[1] & 0b111) << 3) = %x\n(buf[2] >> 5) = %x\n", ((buf[1] & 0b111) << 3), (buf[2] >> 5));
+	
+	if(DEBUG_P) printf("=== serializing %hhx %hhx %hhx \t", buf[0], buf[1], buf[2]);
+	if(DEBUG_P) printf("msg.seq %x == %x buf_seq\n", msg.seq, ((buf[1] & 0b111) << 3) | (buf[2] >> 5));
+	if(DEBUG_P) if(msg.seq != ( ((buf[1] & 0b111) << 3) | (buf[2] >> 5) ) ){
+		printf("((buf[1] & 0b111) << 3) = %x\n(buf[2] >> 5) = %x\n", ((buf[1] & 0b111) << 3), (buf[2] >> 5));
 	}
 	return buf_n;
 }

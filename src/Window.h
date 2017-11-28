@@ -5,7 +5,7 @@
 
 #include "Protocol.h"
 
-#define DEBUG_W true
+#define DEBUG_W false
 
 #define window_size 3
 #define w_mod(X) mod((X),(window_size))
@@ -87,24 +87,6 @@ bool seqAfter(Slider* this, int xseq){
 	return
 		( (xseq - this->rseq) < (-seq_max/2) )
 		|| ( ((xseq - this->rseq) > 0) && (xseq - this->rseq < (seq_max/2)) );
-}
-
-bool chkMsgSeq(Slider* this, packet msg){
-	// if received message from the future
-	if (seqAfter(this, msg.seq)) {
-		if(DEBUG_W)printf("WARN: Message ahead");
-		return false;
-	}
-	if(DEBUG_W)
-		if(this->rseq != msg.seq)
-			printf("INFO: Message before");
-	// TODO test this // or add to sseq only if received response
-	// If you received a message with sequence before
-	// your response got lost and the sender is retrying
-	// rollback sseq to send response to him
-	this->sseq += (msg.seq - this->rseq);
-	this->rseq = seq_mod(msg.seq +1);
-	return true;
 }
 
 int seq_to_i(Window* this, int seq){

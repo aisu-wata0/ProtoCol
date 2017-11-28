@@ -106,11 +106,6 @@ long fill_window(Slider* this, int from, FILE* stream, bool* sent, bool* eof){
 			this->window.arr[i].type = invalid;
 			this->window.arr[i].seq = i_to_seq(&this->window, i);
 		}
-		/*TMP*/
-		if(this->window.arr[i].seq != i_to_seq(&this->window, i)){
-			if(DEBUG_W) fprintf(stderr,"ERROR: seqs should be equal! %x != %x\n", this->window.arr[i].seq, i_to_seq(&this->window, i));
-			this->window.arr[i].seq = i_to_seq(&this->window, i);
-		}/**/
 		
 		i = w_mod(i+1);
 	} while (i != w_mod(w_end(&this->window) +1));
@@ -230,6 +225,7 @@ long send_data(Slider* this, FILE* stream){
 		
 		if(fill){
 			sentData += fill_window(this, this->window.acc, stream, &sent, &eof);
+			printf("Current sent bytes: %h\n", sentData);
 		}
 	}
 	
