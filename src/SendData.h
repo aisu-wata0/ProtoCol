@@ -157,9 +157,19 @@ int handle_response(Window* this, packet response, bool* ended){
 	switch(response.type){
 		case nack:
 			at_seq(this, response_seq)->error = true;
-			// 3 4 5 6	receives nack 5, given: start = 0; [0].seq == 3
-			// 7 8 5 6	start = 2; from 0 to <start, new packets into window
-			this->start = seq_to_i(this, response_seq);
+			
+			if(seq_after(response_seq, w_back(this).seq)){
+				fprintf(stderr, "INFO: received msg ahead of the window\n");
+				this->start = seq_to_i(this, w_back(this).seq);
+				return true;
+			} else
+			if(seq_after(w_front(this).seq, response_seq)){
+				fprintf(stderr, "ERROR: received msg ahead of the window\n");
+			} else {
+				// 3 4 5 6	receives nack 5, given: start = 0; [0].seq == 3
+				// 7 8 5 6	start = 2; from 0 to <start, new packets into window
+				this->start = seq_to_i(this, response_seq);
+			}
 			// 3 4 5 6	receives nack 3; start = 0; no new packets
 			if(this->acc == this->start){
 				return false;
