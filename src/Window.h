@@ -81,6 +81,7 @@ typedef struct {
 	int rseq, sseq;
 } Slider;
 
+packet gNewMsg; // Global message
 
 bool seqAfter(Slider* this, int xseq){
 	if(DEBUG_W)printf("Message ahead, expected seq=%d; received=%d;",this->rseq, xseq);

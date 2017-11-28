@@ -97,18 +97,19 @@ packet getC(Slider* slider, char* fout, unsigned long long fileSize) {
 		return nextMsg;
 	}
 	
+	gNewMsg = NIL_MSG;
 	// everything ok, start sending
 	rec_bytes = receive_data(slider, stream);
 	if(rec_bytes < 1){
 		printf("Command failed on other with errno: %d\n", errno);
 		
 		fclose(stream);
-		return nextMsg;
+		return gNewMsg;
 	}
 	printf("\nbytes transfered = %llu\n", rec_bytes);
 	
 	fclose(stream);
-	return nextMsg;
+	return gNewMsg;
 }
 
 
