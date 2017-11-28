@@ -253,7 +253,7 @@ long long receive_data(Slider* this, FILE* stream){
 	
 	this->rseq = seq_mod(last_acc(&this->window).seq +1);
 	
-	say(this, resp);
+	gNewMsg = say(this, resp);
 	
 	return rec_size;
 }
