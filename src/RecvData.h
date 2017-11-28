@@ -236,12 +236,13 @@ long long receive_data(Slider* this, FILE* stream){
 		
 		write_to_file(this, stream, &rec_size, &ended);
 		
-		printf("Current recv bytes: %h\n", rec_size);
+		if(stream != stdout)
+			printf("Current recv bytes: %lld\n", rec_size);
 		
 		resp = response(this);
 		if(last_acc(&this->window).type != end){
 			set_seq(this, &resp);
-			if(DEBUG_W) printf("set_seq to %h", resp.seq);
+			if(DEBUG_W) printf("set_seq to %x", resp.seq);
 			send_msg(this->sock, resp, this->buf);
 		}
 		
