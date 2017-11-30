@@ -311,7 +311,7 @@ packet talk(Slider* this, packet msg, int timeout_sec){
 	return response;
 }
 /**
- * @brief Repeats message until valid response arrives
+ * @brief Repeats message if receives request again until timeout
  */
 packet say(Slider* this, packet msg){
 	packet response = NIL_MSG;
