@@ -5,7 +5,7 @@
 
 #include "Protocol.h"
 
-#define DEBUG_W true
+#define DEBUG_W false
 
 #define window_size 3
 #define w_mod(X) mod((X),(window_size))

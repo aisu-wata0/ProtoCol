@@ -235,7 +235,8 @@ long send_data(Slider* this, FILE* stream){
 		
 		if(fill){
 			sentData += fill_window(this, this->window.acc, stream, &sent, &eof);
-			printf("Current sent bytes: %ld\n", sentData);
+			if(!sent)
+				printf("Current sent bytes: %ld\n", sentData);
 		}
 	}
 	

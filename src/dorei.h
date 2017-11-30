@@ -135,7 +135,7 @@ packet process(Slider* slider, packet msg){
 				}
 			}
 			wordfree(&argInfo);
-	
+			
 			dir = opendir(".");
 			if (dir == NULL) {
 				 // could not open directory
@@ -165,9 +165,13 @@ packet process(Slider* slider, packet msg){
 					struct stat sb;
 					stat(ent->d_name, &sb);
 					printDetails(stream, sb);
+					fprintf(stream, "%s\n", ent->d_name);
+				} else {
+					fprintf(stream, "%s ", ent->d_name);
 				}
-				fprintf(stream, "%s\n", ent->d_name);
 			}
+			if(!list)
+				fprintf(stream, "\n");
 			closedir(dir);
 			
 			fclose(stream);
@@ -189,7 +193,7 @@ packet process(Slider* slider, packet msg){
 			}
 			
 			long sentB = send_data(slider, stream);
-			printf("sent %ld bytes", sentB);
+			printf("sent %ld bytes\n", sentB);
 			
 			fclose(stream);
 			remove(filename);
