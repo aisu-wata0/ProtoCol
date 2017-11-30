@@ -5,7 +5,7 @@
 
 #include "Protocol.h"
 
-#define DEBUG_W true
+#define DEBUG_W false
 
 #define window_size 3
 #define w_mod(X) mod((X),(window_size))
@@ -311,7 +311,7 @@ packet talk(Slider* this, packet msg, int timeout_sec){
 	return response;
 }
 /**
- * @brief Repeats message until valid response arrives
+ * @brief Repeats message if receives request again until timeout
  */
 packet say(Slider* this, packet msg){
 	packet response = NIL_MSG;

@@ -39,7 +39,6 @@ bool parse(Slider* this, packet msg){
 				succ = false;
 				break;
 			}
-			printf("\nbytes transfered = %lu\n", rec_bytes);
 			
 			break;
 			
@@ -79,11 +78,10 @@ msg_type_t console (char** commands, int* lastCom, packet* msg) {
 	
 	while (msg->type == invalid) {
 		*lastCom = mod(*lastCom +1, COMMAND_HIST_SIZE);
-		printf(" $\n");
-		int ret = scanf("%[^\n]%*c", commands[*lastCom]);
+		printf("$ ");
+		int ret = scanf(" %[^\n]%*c", commands[*lastCom]);
 		if(ret < 0)
 			fprintf(stderr, "Failed scanf(%s) with errno = %d", "%[^\n]%*c", errno);
-		
 		// if local command
 		if(commands[*lastCom][0] == '!'){
 			int ret = system(&commands[*lastCom][1]);
